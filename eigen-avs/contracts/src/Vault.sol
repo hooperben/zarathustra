@@ -225,4 +225,12 @@ contract Vault is ECDSAServiceManagerBase, Pausable {
     }
 
     receive() external payable {}
+
+    function operatorHasMinimumWeight(
+        address operator
+    ) public view returns (bool) {
+        return
+            ECDSAStakeRegistry(stakeRegistry).getOperatorWeight(operator) >=
+            ECDSAStakeRegistry(stakeRegistry).minimumWeight();
+    }
 }
