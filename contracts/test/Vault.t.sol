@@ -61,4 +61,19 @@ contract CounterTest is Test {
 
         vm.stopPrank();
     }
+
+    function test_bridge_e2e() public {
+        // create two vaults with a canoncial signer
+        // whitelist an independent signer for the destination vault
+        // give the destination vault the required tokens
+        // create a mock user with source tokens
+        // call the bridge function as the mock user
+        // assert that the tokens are removed from the mock user
+        // create signatures by both canonical signer and independent signer
+        // create another mock user to call the crank with the signatures
+        // assert that mock user receives the target tokens
+        // assert that crank mock user receives the bridge fee
+        // assert invalid signatures revert
+        // assert that a non-matching third party signature reverts
+    }
 }
