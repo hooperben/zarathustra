@@ -63,6 +63,10 @@ contract Vault is Ownable, ReentrancyGuard, EIP712 {
         AVSReward = _AVSReward;
     }
 
+    function setCrankGasCost(uint256 _crankGasCost) external onlyOwner {
+        crankGasCost = _crankGasCost;
+    }
+
     function getDigest(Structs.BridgeRequestData memory data) public view returns (bytes32) {
         return _hashTypedDataV4(keccak256(abi.encode(
             keccak256("BridgeRequestData(address user,address tokenAddress,uint256 amountIn,uint256 amountOut,address destinationVault,address destinationAddress,uint256 transferIndex)"),
