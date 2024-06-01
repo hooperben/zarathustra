@@ -4,10 +4,15 @@ pragma solidity ^0.8.2;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "./SignatureVerifier.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 
-contract Vault is Ownable, ReentrancyGuard {
-    using SignatureVerifier for bytes32;
+import "./Structs.sol";
+
+import "forge-std/console.sol";
+
+contract Vault is Ownable, ReentrancyGuard, EIP712 {
+    using ECDSA for bytes32;
 
     event BridgeRequest(
         address indexed user,
@@ -19,16 +24,6 @@ contract Vault is Ownable, ReentrancyGuard {
         uint256 transferIndex
     );
 
-    struct BridgeRequestData {
-        address user;
-        address tokenAddress;
-        uint256 amountIn;
-        uint256 amountOut;
-        address destinationVault;
-        address destinationAddress;
-        uint256 transferIndex;
-    }
-
     mapping(address => uint256) private nextUserTransferIndexes;
     mapping(address => bool) private whitelistedSigners;
 
@@ -36,7 +31,7 @@ contract Vault is Ownable, ReentrancyGuard {
     uint256 public crankGasCost;
     address public canonicalSigner;
 
-    constructor(address _canonicalSigner, uint256 _crankGasCost) Ownable(msg.sender) {
+    constructor(address _canonicalSigner, uint256 _crankGasCost) Ownable(msg.sender) EIP712("Zarathustra", "1") {
         crankGasCost = _crankGasCost;
         canonicalSigner = _canonicalSigner;
     }
@@ -47,6 +42,28 @@ contract Vault is Ownable, ReentrancyGuard {
 
     function setBridgeFee(uint256 _bridgeFee) external onlyOwner {
         bridgeFee = _bridgeFee;
+    }
+
+    function getDigest(Structs.BridgeRequestData memory data) public view returns (bytes32) {
+        return _hashTypedDataV4(keccak256(abi.encode(
+            keccak256("BridgeRequestData(address user,address tokenAddress,uint256 amountIn,uint256 amountOut,address destinationVault,address destinationAddress,uint256 transferIndex)"),
+            data.user,
+            data.tokenAddress,
+            data.amountIn,
+            data.amountOut,
+            data.destinationVault,
+            data.destinationAddress,
+            data.transferIndex
+        )));
+    }
+
+    function getSigner(
+        Structs.BridgeRequestData memory data,
+        bytes memory signature
+    ) public returns (address) {
+        bytes32 digest = getDigest(data);
+        console.logBytes32(digest);
+        return ECDSA.recover(digest, signature);
     }
 
     function bridgeERC20(address tokenAddress, uint256 amountIn) internal {
@@ -84,44 +101,43 @@ contract Vault is Ownable, ReentrancyGuard {
             transferIndex
         );
 
+        bytes32 digest = getDigest(
+            Structs.BridgeRequestData(
+                msg.sender,
+                tokenAddress,
+                amountIn,
+                amountOut,
+                destinationVault,
+                destinationAddress,
+                transferIndex
+            )
+        );
+        console.logBytes32(digest);
+
         nextUserTransferIndexes[msg.sender]++;
     }
 
     function releaseFunds(
-        bytes32 canonicalSignedMessage,
-        uint8 canonicalV,
-        bytes32 canonicalR,
-        bytes32 canonicalS,
-        bytes32 messageHash,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
+        bytes memory canonicalSignature,
+        bytes memory AVSSignature,
+        Structs.BridgeRequestData memory data
     ) public nonReentrant {
-        // Verify canonical signer's signature
-        require(
-            SignatureVerifier.getSigner(canonicalSignedMessage, canonicalV, canonicalR, canonicalS) == canonicalSigner,
-            "Invalid canonical signature"
-        );
+        console.log(data.user, data.tokenAddress, data.amountIn, data.amountOut);
+        console.log(data.destinationVault, data.destinationAddress, data.transferIndex);
+        // Verify canonical signer's signaturegg
+        require(getSigner(data, canonicalSignature) == canonicalSigner, "Invalid canonical signature");
 
-        // Verify whitelisted signer's signature on the original message hash
-        address signer = SignatureVerifier.getSigner(messageHash, v, r, s);
+        address signer = getSigner(data, AVSSignature);
         require(whitelistedSigners[signer], "Invalid signature");
 
-        // Decode the original message hash to get BridgeRequestData
-        BridgeRequestData memory canonicalRequestData = decodeMessageHash(canonicalSignedMessage);
-        BridgeRequestData memory requestData = decodeMessageHash(messageHash);
+        require(data.destinationVault == address(this), "Invalid destination vault");
 
-        // Verify all fields match between the canonical and whitelisted signed messages
-        require(keccak256(abi.encode(canonicalRequestData)) == keccak256(abi.encode(requestData)), "Mismatched request data");
-
-        require(requestData.destinationVault == address(this), "Invalid destination vault");
-
-        IERC20(requestData.tokenAddress).transfer(requestData.destinationAddress, requestData.amountOut);
+        IERC20(data.tokenAddress).approve(address(this), data.amountOut);
+        IERC20(data.tokenAddress).transfer(data.destinationAddress, data.amountOut);
 
         uint256 payout = crankGasCost * tx.gasprice;
         if (address(this).balance < payout) {
-            payout = address(this).balance;
-        }
+            payout = address(this).balance; }
 
         if (payout > 0) {
             (bool sent, ) = msg.sender.call{value: payout}("");
@@ -183,10 +199,6 @@ contract Vault is Ownable, ReentrancyGuard {
             attestationMessageHash == cannonicalAttestationSignedMessage,
             "Invalid canonical attestation message hash"
         );
-    }
-
-    function decodeMessageHash(bytes32 messageHash) internal pure returns (BridgeRequestData memory) {
-        return abi.decode(abi.encodePacked(messageHash), (BridgeRequestData));
     }
 
     function whitelistSigner(address signer) public onlyOwner {
