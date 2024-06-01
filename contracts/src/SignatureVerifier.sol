@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.2;
 
 library SignatureVerifier {
     function getMessageHash(
@@ -8,9 +8,10 @@ library SignatureVerifier {
         uint256 amountIn,
         uint256 minAmountOut,
         address destinationVault,
+        address destinationAddress,
         uint256 transferIndex
     ) public pure returns (bytes32) {
-        return keccak256(abi.encodePacked(user, tokenAddress, amountIn, minAmountOut, destinationVault, transferIndex));
+        return keccak256(abi.encodePacked(user, tokenAddress, amountIn, minAmountOut, destinationVault, destinationAddress, transferIndex));
     }
 
     function getSigner(
