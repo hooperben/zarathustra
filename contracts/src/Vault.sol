@@ -36,12 +36,12 @@ contract Vault is Ownable, ReentrancyGuard {
         crankFee = _crankFee;
     }
 
-    function bridgeERC20(
-        address tokenAddress,
-        uint256 amountIn
-    ) internal {
-        IERC20(tokenAddress).approve(msg.sender, amountIn);  // TODO: Do you still need this approval?
-        bool success = IERC20(tokenAddress).transferFrom(msg.sender, address(this), amountIn);
+    function bridgeERC20(address tokenAddress, uint256 amountIn) internal {
+        bool success = IERC20(tokenAddress).transferFrom(
+            msg.sender,
+            address(this),
+            amountIn
+        );
         require(success, "Transfer failed");
     }
 
@@ -53,11 +53,23 @@ contract Vault is Ownable, ReentrancyGuard {
         address destinationAddress,
         uint256 transferIndex
     ) public payable nonReentrant {
-        require(transferIndex == nextUserTransferIndexes[msg.sender], "Invalid transfer index");
+        require(
+            transferIndex == nextUserTransferIndexes[msg.sender],
+            "Invalid transfer index"
+        );
         require(msg.value == bridgeFee, "Incorrect bridge fee");
 
         bridgeERC20(tokenAddress, amountIn);
-        emit BridgeRequest(msg.sender, tokenAddress, amountIn, amountOut, destinationVault, destinationAddress, transferIndex);
+
+        emit BridgeRequest(
+            msg.sender,
+            tokenAddress,
+            amountIn,
+            amountOut,
+            destinationVault,
+            destinationAddress,
+            transferIndex
+        );
 
         nextUserTransferIndexes[msg.sender]++;
     }
@@ -75,7 +87,15 @@ contract Vault is Ownable, ReentrancyGuard {
         bytes32 s
     ) public nonReentrant {
         // Use address(this) for destinationVault to verfiy that the signature is for this vault without adding extra OPs
-        bytes32 messageHash = SignatureVerifier.getMessageHash(user, tokenAddress, amountIn, amountOut, address(this), destinationAddress, transferIndex);
+        bytes32 messageHash = SignatureVerifier.getMessageHash(
+            user,
+            tokenAddress,
+            amountIn,
+            amountOut,
+            address(this),
+            destinationAddress,
+            transferIndex
+        );
         address signer = SignatureVerifier.getSigner(messageHash, v, r, s);
 
         require(whitelistedSigners[signer], "Invalid signature");
