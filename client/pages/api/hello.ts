@@ -32,7 +32,7 @@ export default async function handler(
   // this is called by tenderly when a AVSAttestation event is emitted
   if (req.method === "GET") {
     const { 
-      user, tokenAddress, amountIn, amountOut, destinationVault, destinationAddress, transferIndex, signedAVSMessage  
+      user, tokenAddress, amountIn, amountOut, destinationVault, destinationAddress, transferIndex  
     } = req.body;
 
     const avsSigner = new ethers.Wallet(CANNONICAL_PRIVATE_KEY as string);
@@ -52,24 +52,35 @@ export default async function handler(
 
     // we wont have to do any AVS signature checks here
     const signedAVSMessageReplica = await avsSigner.signMessage(messageHash);
-    const {r,s,v} = Signature.from(signedAVSMessage);
+    //const {r,s,v} = Signature.from(signedAVSMessage);
 
     const api: string = chainLookUp[tokenAddress].api;
     const provider = new ethers.JsonRpcProvider(api); // filter rpc based on the destination address
     const wallet = cannonicalSigner.connect(provider);
 
-    const contractABI = [
-      "function verifyAttestation (tokenAddress, amountIn, amountOut, destinationVault, destinationAddress, transferIndex, signedAVSMessage, cannonicalAttestationSignedMessage) public"
+    const verifyABI = [  // TODO: replace with actual ABI
+      "function verifyAttestation (tokenAddress, amountIn, amountOut, destinationVault, destinationAddress, transferIndex, signedAVSMessage) public"
+    ];
+    const digestABI = [
+      "function getDigest(Structs.BridgeRequestData memory data) public view" // TODO: does this work?
     ];
     
+    
     const contractAddress = chainLookUp[tokenAddress].contractAddress; 
-    const contract = new ethers.Contract(contractAddress, contractABI, wallet);
+    const contractVerify = new ethers.Contract(contractAddress, verifyABI, wallet);
+    const contractDigest = new ethers.Contract(contractAddress, digestABI, wallet);
 
     // contract.releaseFunds();
 
     // Call the contract function
     try {
-      const tx = await contract.verifyAttestation(tokenAddress, amountIn, amountOut, destinationVault, destinationAddress, transferIndex, signedAVSMessage, cannonicalAttestationSignedMessage);
+      const digest = await contractDigest.getDigest({ user, tokenAddress, amountIn, amountOut, destinationVault, destinationAddress, transferIndex });
+      
+      // sign the digest
+      const signedAVSMessage = await avsSigner.signMessage(digest);
+
+      // verify the signature
+      const tx = await contractVerify.verifyAttestation(tokenAddress, amountIn, amountOut, destinationVault, destinationAddress, transferIndex, signedAVSMessage);
       await tx.wait();
       return res.status(200).json({ result: true, message: "Contract called successfully" });
     } catch (error) {
