@@ -9,8 +9,6 @@ import "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 
 import "./Structs.sol";
 
-import "forge-std/console.sol";
-
 contract Vault is Ownable, ReentrancyGuard, EIP712 {
     using ECDSA for bytes32;
 
