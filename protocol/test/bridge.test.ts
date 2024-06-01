@@ -1,14 +1,9 @@
-import {
-  time,
-  loadFixture,
-} from "@nomicfoundation/hardhat-toolbox/network-helpers";
-import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import { expect } from "chai";
 import hre, { deployments, ethers } from "hardhat";
 import { TestErc20, Vault } from "../typechain-types";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 import { Contract, parseEther } from "ethers";
-import { token } from "../typechain-types/@openzeppelin/contracts";
+import { getGraphQLRecord } from "../constants/get-graphql-record";
 
 // await expect(lock.withdraw())
 // .to.emit(lock, "Withdrawal")
@@ -50,5 +45,18 @@ describe("Bridge Testing", () => {
 
     // deposit should work
     await Vault.connect(Deployer).deposit(amount);
+
+    // this is a demo tx I made on optimism sepolia
+    const demoTx =
+      "0x61718a55b8949a38bfdb0e0a7c52b79be566f1f27ccba1870c423cadb6afb016";
+
+    // this is the graphQL query to get the details of this tx
+    const { data } = await getGraphQLRecord(demoTx);
+
+    const record = data.graphDepositTrackers[0];
+
+    console.log(record);
+
+    // expect(record.)
   });
 });
