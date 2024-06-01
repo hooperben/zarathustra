@@ -33,10 +33,11 @@ contract Vault is Ownable, ReentrancyGuard {
     mapping(address => bool) private whitelistedSigners;
 
     uint256 public bridgeFee;
-    uint256 public crankFee;
+    uint256 public crankGasCost;
     address public canonicalSigner;
 
-    constructor(address _canonicalSigner) Ownable(msg.sender) {
+    constructor(address _canonicalSigner, uint256 _crankGasCost) Ownable(msg.sender) {
+        crankGasCost = _crankGasCost;
         canonicalSigner = _canonicalSigner;
     }
 
@@ -46,10 +47,6 @@ contract Vault is Ownable, ReentrancyGuard {
 
     function setBridgeFee(uint256 _bridgeFee) external onlyOwner {
         bridgeFee = _bridgeFee;
-    }
-
-    function setCrankFee(uint256 _crankFee) external onlyOwner {
-        crankFee = _crankFee;
     }
 
     function bridgeERC20(address tokenAddress, uint256 amountIn) internal {
@@ -121,8 +118,8 @@ contract Vault is Ownable, ReentrancyGuard {
 
         IERC20(requestData.tokenAddress).transfer(requestData.destinationAddress, requestData.amountOut);
 
-        uint256 payout = crankFee;
-        if (address(this).balance < crankFee) {
+        uint256 payout = crankGasCost * tx.gasprice;
+        if (address(this).balance < payout) {
             payout = address(this).balance;
         }
 
