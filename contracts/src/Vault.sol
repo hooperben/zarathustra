@@ -14,7 +14,7 @@ contract Vault is Ownable {
         address indexed user,
         address indexed tokenAddress,
         uint256 amountIn,
-        uint256 minAmountOut,
+        uint256 amountOut,
         address destinationVault,
         address destinationAddress,
         uint256 transferIndex
@@ -38,7 +38,7 @@ contract Vault is Ownable {
         address tokenAddress,
         uint256 amountIn
     ) internal {
-        IERC20(tokenAddress).approve(address(this), amountIn);
+        IERC20(tokenAddress).approve(msg.sender, amountIn);  // TODO: Do you still need this approval?
         bool success = IERC20(tokenAddress).transferFrom(msg.sender, address(this), amountIn);
         require(success, "Transfer failed");
     }
@@ -46,7 +46,7 @@ contract Vault is Ownable {
     function bridge(
         address tokenAddress,
         uint256 amountIn,
-        uint256 minAmountOut,
+        uint256 amountOut,
         address destinationVault,
         address destinationAddress,
         uint256 transferIndex
@@ -55,7 +55,7 @@ contract Vault is Ownable {
         require(msg.value == bridgeFee, "Incorrect bridge fee");
 
         bridgeERC20(tokenAddress, amountIn);
-        emit BridgeRequest(msg.sender, tokenAddress, amountIn, minAmountOut, destinationVault, destinationAddress, transferIndex);
+        emit BridgeRequest(msg.sender, tokenAddress, amountIn, amountOut, destinationVault, destinationAddress, transferIndex);
 
         nextUserTransferIndexes[msg.sender]++;
     }
@@ -64,7 +64,7 @@ contract Vault is Ownable {
         address user,
         address tokenAddress,
         uint256 amountIn,
-        uint256 minAmountOut,
+        uint256 amountOut,
         address destinationVault,
         address destinationAddress,
         uint256 transferIndex,
@@ -72,13 +72,14 @@ contract Vault is Ownable {
         bytes32 r,
         bytes32 s
     ) public {
-        bytes32 messageHash = SignatureVerifier.getMessageHash(user, tokenAddress, amountIn, minAmountOut, destinationVault, destinationAddress, transferIndex);
+        // Use address(this) for destinationVault to verfiy that the signature is for this vault without adding extra OPs
+        bytes32 messageHash = SignatureVerifier.getMessageHash(user, tokenAddress, amountIn, amountOut, address(this), destinationAddress, transferIndex);
         address signer = SignatureVerifier.getSigner(messageHash, v, r, s);
 
         require(whitelistedSigners[signer], "Invalid signature");
         require(destinationVault == address(this), "Invalid destination vault");
 
-        IERC20(tokenAddress).transfer(destinationAddress, amountIn);
+        IERC20(tokenAddress).transfer(destinationAddress, amountOut);
 
         uint256 payout = crankFee;
         if (address(this).balance < crankFee) {
