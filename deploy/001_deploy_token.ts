@@ -15,6 +15,7 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
     args: [],
     log: true,
     autoMine: true,
+    waitConfirmations: 1,
   });
 };
 

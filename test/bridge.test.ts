@@ -7,7 +7,8 @@ import { expect } from "chai";
 import hre, { deployments, ethers } from "hardhat";
 import { TestErc20, Vault } from "../typechain-types";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
-import { Contract } from "ethers";
+import { Contract, parseEther } from "ethers";
+import { token } from "../typechain-types/@openzeppelin/contracts";
 
 // await expect(lock.withdraw())
 // .to.emit(lock, "Withdrawal")
@@ -39,7 +40,15 @@ describe("Bridge Testing", () => {
     ) as unknown as Vault;
   });
 
-  it("should run", async () => {
-    console.log(await Token.balanceOf(Deployer.address));
+  it("deployments should run correctly", async () => {
+    const tokenAddress = await Vault.token();
+
+    expect(tokenAddress).to.equal(await Token.getAddress());
+
+    const amount = parseEther("1000");
+    await Token.connect(Deployer).approve(await Vault.getAddress(), amount);
+
+    // deposit should work
+    await Vault.connect(Deployer).deposit(amount);
   });
 });
