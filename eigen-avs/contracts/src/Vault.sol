@@ -95,31 +95,62 @@ contract Vault is ECDSAServiceManagerBase, Pausable {
         require(success, "Transfer failed");
     }
 
-    function avsAttestationReply(
+    function verifyAttestation(
         address tokenAddress,
         uint256 amountIn,
         uint256 amountOut,
         address destinationVault,
         address destinationAddress,
-        uint256 transferIndex
-    ) external onlyOperator {
+        uint256 transferIndex,
+        bytes32 signedAVSMessage,
+        bytes32 cannonicalAttestationSignedMessage
+    ) public {
         require(
             operatorHasMinimumWeight(msg.sender),
             "Operator does not have match the weight requirements"
         );
-        // TODO need to add a duplicate check here
+        // Verify the AVS signature
+        require(
+            SignatureVerifier.getSigner(signedAVSMessage) == address(this),
+            "Invalid AVS signature"
+        );
 
-        // recreate the signature, check it matches
-        // bytes32 messageHash = keccak256(
-        //     abi.encodePacked(
-        //         tokenAddress,
-        //         amountIn,
-        //         amountOut,
-        //         destinationVault,
-        //         destinationAddress,
-        //         transferIndex
-        //     )
-        // );
+        // Verify the canonical attestation signature
+        require(
+            SignatureVerifier.getSigner(cannonicalAttestationSignedMessage) ==
+                canonicalSigner,
+            "Invalid canonical attestation signature"
+        );
+
+        // Verify the AVS message hash
+        bytes32 avsMessageHash = keccak256(
+            abi.encodePacked(
+                tokenAddress,
+                amountIn,
+                amountOut,
+                destinationVault,
+                destinationAddress,
+                transferIndex
+            )
+        );
+        require(avsMessageHash == signedAVSMessage, "Invalid AVS message hash");
+
+        // Verify the canonical attestation message hash
+        bytes32 attestationMessageHash = keccak256(
+            abi.encodePacked(
+                tokenAddress,
+                amountIn,
+                amountOut,
+                destinationVault,
+                destinationAddress,
+                transferIndex,
+                signedAVSMessage
+            )
+        );
+        require(
+            attestationMessageHash == cannonicalAttestationSignedMessage,
+            "Invalid canonical attestation message hash"
+        );
     }
 
     function bridge(
