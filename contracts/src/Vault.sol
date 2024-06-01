@@ -101,15 +101,22 @@ contract Vault is Ownable, ReentrancyGuard {
         bytes32 s
     ) public nonReentrant {
         // Verify canonical signer's signature
-        address canonicalSignerAddress = SignatureVerifier.getSigner(canonicalSignedMessage, canonicalV, canonicalR, canonicalS);
-        require(canonicalSignerAddress == canonicalSigner, "Invalid canonical signature");
+        require(
+            SignatureVerifier.getSigner(canonicalSignedMessage, canonicalV, canonicalR, canonicalS) == canonicalSigner,
+            "Invalid canonical signature"
+        );
 
         // Verify whitelisted signer's signature on the original message hash
         address signer = SignatureVerifier.getSigner(messageHash, v, r, s);
         require(whitelistedSigners[signer], "Invalid signature");
 
         // Decode the original message hash to get BridgeRequestData
+        BridgeRequestData memory canonicalRequestData = decodeMessageHash(canonicalSignedMessage);
         BridgeRequestData memory requestData = decodeMessageHash(messageHash);
+
+        // Verify all fields match between the canonical and whitelisted signed messages
+        require(keccak256(abi.encode(canonicalRequestData)) == keccak256(abi.encode(requestData)), "Mismatched request data");
+
         require(requestData.destinationVault == address(this), "Invalid destination vault");
 
         IERC20(requestData.tokenAddress).transfer(requestData.destinationAddress, requestData.amountOut);
