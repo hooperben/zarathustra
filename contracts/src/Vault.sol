@@ -7,13 +7,12 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 
-import "./SignatureVerifier.sol";
 import "./Structs.sol";
 
 import "forge-std/console.sol";
 
 contract Vault is Ownable, ReentrancyGuard, EIP712 {
-    using SignatureVerifier for bytes32;
+    using ECDSA for bytes32;
 
     event BridgeRequest(
         address indexed user,
