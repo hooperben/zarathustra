@@ -159,4 +159,13 @@ contract Vault is Ownable, ReentrancyGuard, EIP712 {
     }
 
     receive() external payable {}
+
+//    // Ideally we'd use this but the stake registry isn't deployed on all the chains yet!
+//    function operatorHasMinimumWeight(
+//        address operator
+//    ) public view returns (bool) {
+//        return
+//            ECDSAStakeRegistry(stakeRegistry).getOperatorWeight(operator) >=
+//            ECDSAStakeRegistry(stakeRegistry).minimumWeight();
+//    }
 }
