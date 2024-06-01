@@ -74,7 +74,7 @@ contract Vault is Ownable, ReentrancyGuard, EIP712 {
     function getSigner(
         Structs.BridgeRequestData memory data,
         bytes memory signature
-    ) public returns (address) {
+    ) public view returns (address) {
         bytes32 digest = getDigest(data);
         return ECDSA.recover(digest, signature);
     }
