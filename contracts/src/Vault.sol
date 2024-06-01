@@ -35,6 +35,7 @@ contract Vault is Ownable, ReentrancyGuard, EIP712 {
     mapping(uint256 => Structs.BridgeRequestData) public bridgeRequests;
 
     uint256 public bridgeFee;
+    uint256 public AVSReward;
     uint256 public crankGasCost;
     address public canonicalSigner;
 
@@ -45,6 +46,8 @@ contract Vault is Ownable, ReentrancyGuard, EIP712 {
 //    }
     constructor() Ownable(msg.sender) EIP712("Zarathustra", "1") {
         crankGasCost = 100_000;
+        bridgeFee = 100_000;
+        AVSReward = 50_000;
         canonicalSigner = msg.sender;
         currentBridgeRequestId = 0;
         whitelistedSigners[0x53bce04C488e3da5295b9C1118a057b52cB18e57] = true;
@@ -56,6 +59,10 @@ contract Vault is Ownable, ReentrancyGuard, EIP712 {
 
     function setBridgeFee(uint256 _bridgeFee) external onlyOwner {
         bridgeFee = _bridgeFee;
+    }
+
+    function setAVSReward(uint256 _AVSReward) external onlyOwner {
+        AVSReward = _AVSReward;
     }
 
     function getDigest(Structs.BridgeRequestData memory data) public view returns (bytes32) {
@@ -127,8 +134,13 @@ contract Vault is Ownable, ReentrancyGuard, EIP712 {
         nextUserTransferIndexes[msg.sender]++;
     }
 
-    function publishAttestation(bytes32 attestation, uint256 _bridgeRequestId) public {
+    function publishAttestation(bytes32 attestation, uint256 _bridgeRequestId) public nonReentrant {
+        require(whitelistedSigners[msg.sender], "Invalid AVS signer");
+
         emit AVSAttestation(attestation, _bridgeRequestId);
+
+        (bool sent, ) = msg.sender.call{value: AVSReward}("");
+        require(sent, "Failed to send AVS reward");
     }
 
     function releaseFunds(
