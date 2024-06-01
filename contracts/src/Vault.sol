@@ -3,9 +3,11 @@ pragma solidity ^0.8.2;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+
 import "./SignatureVerifier.sol";
 
-contract Vault is Ownable {
+contract Vault is Ownable, ReentrancyGuard {
     using SignatureVerifier for bytes32;
 
     constructor() Ownable(msg.sender) {}
@@ -50,7 +52,7 @@ contract Vault is Ownable {
         address destinationVault,
         address destinationAddress,
         uint256 transferIndex
-    ) public payable {
+    ) public payable nonReentrant {
         require(transferIndex == nextUserTransferIndexes[msg.sender], "Invalid transfer index");
         require(msg.value == bridgeFee, "Incorrect bridge fee");
 
@@ -71,7 +73,7 @@ contract Vault is Ownable {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) public {
+    ) public nonReentrant {
         // Use address(this) for destinationVault to verfiy that the signature is for this vault without adding extra OPs
         bytes32 messageHash = SignatureVerifier.getMessageHash(user, tokenAddress, amountIn, amountOut, address(this), destinationAddress, transferIndex);
         address signer = SignatureVerifier.getSigner(messageHash, v, r, s);
