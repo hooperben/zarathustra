@@ -6,12 +6,12 @@ library SignatureVerifier {
         address user,
         address tokenAddress,
         uint256 amountIn,
-        uint256 minAmountOut,
+        uint256 amountOut,
         address destinationVault,
         address destinationAddress,
         uint256 transferIndex
     ) public pure returns (bytes32) {
-        return keccak256(abi.encodePacked(user, tokenAddress, amountIn, minAmountOut, destinationVault, destinationAddress, transferIndex));
+        return keccak256(abi.encodePacked(user, tokenAddress, amountIn, amountOut, destinationVault, destinationAddress, transferIndex));
     }
 
     function getSigner(
@@ -20,7 +20,6 @@ library SignatureVerifier {
         bytes32 r,
         bytes32 s
     ) public pure returns (address) {
-        address signer = ecrecover(messageHash, v, r, s);
-        return signer;
+        return ecrecover(messageHash, v, r, s);
     }
 }
