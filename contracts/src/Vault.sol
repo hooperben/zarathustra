@@ -17,15 +17,22 @@ contract Vault is Ownable, ReentrancyGuard, EIP712 {
     event BridgeRequest(
         address indexed user,
         address indexed tokenAddress,
+        uint256 indexed bridgeRequestId,
         uint256 amountIn,
         uint256 amountOut,
         address destinationVault,
         address destinationAddress,
-        uint256 transferIndex
+        uint256 transferIndex,
+        bytes canonicalAttestation
     );
+
+    event AVSAttestation(bytes32 indexed attestation, uint256 indexed bridgeRequestId);
 
     mapping(address => uint256) private nextUserTransferIndexes;
     mapping(address => bool) private whitelistedSigners;
+
+    uint256 public currentBridgeRequestId;
+    mapping(uint256 => Structs.BridgeRequestData) public bridgeRequests;
 
     uint256 public bridgeFee;
     uint256 public crankGasCost;
@@ -34,6 +41,7 @@ contract Vault is Ownable, ReentrancyGuard, EIP712 {
     constructor(address _canonicalSigner, uint256 _crankGasCost) Ownable(msg.sender) EIP712("Zarathustra", "1") {
         crankGasCost = _crankGasCost;
         canonicalSigner = _canonicalSigner;
+        currentBridgeRequestId = 0;
     }
 
     function setCanonicalSigner(address _canonicalSigner) external onlyOwner {
@@ -62,7 +70,6 @@ contract Vault is Ownable, ReentrancyGuard, EIP712 {
         bytes memory signature
     ) public returns (address) {
         bytes32 digest = getDigest(data);
-        console.logBytes32(digest);
         return ECDSA.recover(digest, signature);
     }
 
@@ -81,17 +88,26 @@ contract Vault is Ownable, ReentrancyGuard, EIP712 {
         uint256 amountOut,
         address destinationVault,
         address destinationAddress,
-        uint256 transferIndex
+        bytes memory canonicalAttestation
     ) public payable nonReentrant {
-        require(
-            transferIndex == nextUserTransferIndexes[msg.sender],
-            "Invalid transfer index"
-        );
         require(msg.value == bridgeFee, "Incorrect bridge fee");
 
         bridgeERC20(tokenAddress, amountIn);
+        uint256 transferIndex = nextUserTransferIndexes[msg.sender];
 
         emit BridgeRequest(
+            msg.sender,
+            tokenAddress,
+            currentBridgeRequestId,
+            amountIn,
+            amountOut,
+            destinationVault,
+            destinationAddress,
+            transferIndex,
+            canonicalAttestation
+        );
+
+        bridgeRequests[currentBridgeRequestId] = Structs.BridgeRequestData(
             msg.sender,
             tokenAddress,
             amountIn,
@@ -101,20 +117,12 @@ contract Vault is Ownable, ReentrancyGuard, EIP712 {
             transferIndex
         );
 
-        bytes32 digest = getDigest(
-            Structs.BridgeRequestData(
-                msg.sender,
-                tokenAddress,
-                amountIn,
-                amountOut,
-                destinationVault,
-                destinationAddress,
-                transferIndex
-            )
-        );
-        console.logBytes32(digest);
-
+        currentBridgeRequestId++;
         nextUserTransferIndexes[msg.sender]++;
+    }
+
+    function publishAttestation(bytes32 attestation, uint256 _bridgeRequestId) public {
+        emit AVSAttestation(attestation, _bridgeRequestId);
     }
 
     function releaseFunds(
@@ -122,14 +130,11 @@ contract Vault is Ownable, ReentrancyGuard, EIP712 {
         bytes memory AVSSignature,
         Structs.BridgeRequestData memory data
     ) public nonReentrant {
-        console.log(data.user, data.tokenAddress, data.amountIn, data.amountOut);
-        console.log(data.destinationVault, data.destinationAddress, data.transferIndex);
         // Verify canonical signer's signaturegg
         require(getSigner(data, canonicalSignature) == canonicalSigner, "Invalid canonical signature");
 
         address signer = getSigner(data, AVSSignature);
         require(whitelistedSigners[signer], "Invalid signature");
-
         require(data.destinationVault == address(this), "Invalid destination vault");
 
         IERC20(data.tokenAddress).approve(address(this), data.amountOut);
@@ -143,62 +148,6 @@ contract Vault is Ownable, ReentrancyGuard, EIP712 {
             (bool sent, ) = msg.sender.call{value: payout}("");
             require(sent, "Failed to send crank fee");
         }
-    }
-    
-    function verifyAttestation (
-        address tokenAddress,
-        uint256 amountIn,
-        uint256 amountOut,
-        address destinationVault,
-        address destinationAddress,
-        uint256 transferIndex,
-        bytes32 signedAVSMessage,
-        bytes32 cannonicalAttestationSignedMessage
-    ) public {
-        // Verify the AVS signature
-        require(
-            SignatureVerifier.getSigner(signedAVSMessage) == address(this),
-            "Invalid AVS signature"
-        );
-
-        // Verify the canonical attestation signature
-        require(
-            SignatureVerifier.getSigner(cannonicalAttestationSignedMessage) == canonicalSigner,
-            "Invalid canonical attestation signature"
-        );
-
-        // Verify the AVS message hash
-        bytes32 avsMessageHash = keccak256(
-            abi.encodePacked(
-                tokenAddress,
-                amountIn,
-                amountOut,
-                destinationVault,
-                destinationAddress,
-                transferIndex
-            )
-        );
-        require(
-            avsMessageHash == signedAVSMessage,
-            "Invalid AVS message hash"
-        );
-
-        // Verify the canonical attestation message hash
-        bytes32 attestationMessageHash = keccak256(
-            abi.encodePacked(
-                tokenAddress,
-                amountIn,
-                amountOut,
-                destinationVault,
-                destinationAddress,
-                transferIndex,
-                signedAVSMessage
-            )
-        );
-        require(
-            attestationMessageHash == cannonicalAttestationSignedMessage,
-            "Invalid canonical attestation message hash"
-        );
     }
 
     function whitelistSigner(address signer) public onlyOwner {

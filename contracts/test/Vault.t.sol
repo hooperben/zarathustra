@@ -59,28 +59,6 @@ contract VaultTest is Test, EIP712("Zarathustra", "1") {
         testERC20.mint(address(remoteVault), 10 ether);
     }
 
-    function test_bridge() public {
-        uint256 amount = 10 * 10 ** 18;
-        testERC20.mint(alice, amount);
-
-        assertEq(testERC20.balanceOf(alice), amount);
-
-        // alice should be able to call the bridge
-        vm.startPrank(alice);
-
-        testERC20.approve(address(vault), amount);
-        vault.bridge{value: bridgeFee}({
-            tokenAddress: address(testERC20),
-            amountIn: amount,
-            amountOut: amount,
-            destinationVault: address(remoteVault),
-            destinationAddress: alice,
-            transferIndex: 0
-        });
-
-        vm.stopPrank();
-    }
-
     function test_bridge_e2e() public {
         uint256 amount = 10 * 10 ** 18;
         testERC20.mint(alice, amount);
@@ -91,22 +69,6 @@ contract VaultTest is Test, EIP712("Zarathustra", "1") {
 
         // Alice bridges the tokens
         vm.startPrank(alice);
-
-        testERC20.approve(address(vault), amount);
-        vault.bridge{value: bridgeFee}({
-            tokenAddress: address(testERC20),
-            amountIn: amount,
-            amountOut: amount,
-            destinationVault: address(remoteVault),
-            destinationAddress: alice,
-            transferIndex: 0
-        });
-
-        vm.stopPrank();
-
-        // Verify Alice's tokens are in the source vault
-        assertEq(testERC20.balanceOf(address(vault)), amount);
-        assertEq(testERC20.balanceOf(alice), 0);
 
         Structs.BridgeRequestData memory brd = Structs.BridgeRequestData({
             user: alice,
@@ -121,6 +83,24 @@ contract VaultTest is Test, EIP712("Zarathustra", "1") {
         bytes32 digest = remoteVault.getDigest(brd);
 
         (uint8 v1, bytes32 r1, bytes32 s1) = vm.sign(canonicalSignerPkey, digest);
+
+        testERC20.approve(address(vault), amount);
+        vault.bridge{value: bridgeFee}({
+            tokenAddress: address(testERC20),
+            amountIn: amount,
+            amountOut: amount,
+            destinationVault: address(remoteVault),
+            destinationAddress: alice,
+            canonicalAttestation: abi.encodePacked(r1, s1, v1)
+        });
+
+        vm.stopPrank();
+
+        // Verify Alice's tokens are in the source vault
+        assertEq(testERC20.balanceOf(address(vault)), amount);
+        assertEq(testERC20.balanceOf(alice), 0);
+
+
         (uint8 v2, bytes32 r2, bytes32 s2) = vm.sign(independentSignerPkey, digest);
 
         // Bob calls the crank with the signatures
