@@ -1,28 +1,56 @@
-<a href="https://www.streamingfast.io/">
-	<img width="100%" src="https://github.com/streamingfast/substreams/blob/develop/docs/assets/substreams-banner.png" alt="StreamingFast Substreams Banner" />
-</a>
+### Zarathustra (Eigen Bridge)
 
-# Substreams
+We currently use a graph sub graph in order to index events emitted from our vault contract.
 
-> Developer preview
+Example txId = 0x61718a55b8949a38bfdb0e0a7c52b79be566f1f27ccba1870c423cadb6afb01608000000
 
-Substreams is a powerful blockchain indexing technology, developed for The Graph Network.
+With query:
 
-Substreams enables developers to write Rust modules, composing data streams alongside the community, and provides extremely high performance indexing by virtue of parallelization, in a streaming-first fashion.
+```
+query GraphDepositTrackers {
+    graphDepositTrackers(
+        where: {
+            id: ""
+        }
+    ) {
+        id
+        user
+        amount
+        blockNumber
+        blockTimestamp
+        transactionHash
+    }
+}
 
-Substreams has all the benefits of StreamingFast Firehose, like low-cost caching and archiving of blockchain data, high throughput processing, and cursor-based reorgs handling.
+```
 
-## Documentation
+with inputs:
 
-Full documentation for installing, running and working with Substreams is available at: https://substreams.streamingfast.io.
+```
+{
+	"id": "0x61718a55b8949a38bfdb0e0a7c52b79be566f1f27ccba1870c423cadb6afb01608000000"
+}
+```
 
-## Contributing
+or if you just run:
 
-**Please first refer to the general
-[StreamingFast contribution guide](https://github.com/streamingfast/streamingfast/blob/master/CONTRIBUTING.md)**,
-if you wish to contribute to this code base.
+```
+query GraphDepositTrackers {
+    graphDepositTrackers(
+        where: {
+            id: "0x61718a55b8949a38bfdb0e0a7c52b79be566f1f27ccba1870c423cadb6afb01608000000"
+        }
+    ) {
+        id
+        user
+        amount
+        blockNumber
+        blockTimestamp
+        transactionHash
+    }
+}
+```
 
+at:
 
-## License
-
-[Apache 2.0](LICENSE)
+https://api.studio.thegraph.com/proxy/77104/eth_prague/v1.0.0/graphql
