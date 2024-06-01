@@ -128,6 +128,62 @@ contract Vault is Ownable, ReentrancyGuard {
             require(sent, "Failed to send crank fee");
         }
     }
+    
+    function verifyAttestation (
+        address tokenAddress,
+        uint256 amountIn,
+        uint256 amountOut,
+        address destinationVault,
+        address destinationAddress,
+        uint256 transferIndex,
+        bytes32 signedAVSMessage,
+        bytes32 cannonicalAttestationSignedMessage
+    ) public {
+        // Verify the AVS signature
+        require(
+            SignatureVerifier.getSigner(signedAVSMessage) == address(this),
+            "Invalid AVS signature"
+        );
+
+        // Verify the canonical attestation signature
+        require(
+            SignatureVerifier.getSigner(cannonicalAttestationSignedMessage) == canonicalSigner,
+            "Invalid canonical attestation signature"
+        );
+
+        // Verify the AVS message hash
+        bytes32 avsMessageHash = keccak256(
+            abi.encodePacked(
+                tokenAddress,
+                amountIn,
+                amountOut,
+                destinationVault,
+                destinationAddress,
+                transferIndex
+            )
+        );
+        require(
+            avsMessageHash == signedAVSMessage,
+            "Invalid AVS message hash"
+        );
+
+        // Verify the canonical attestation message hash
+        bytes32 attestationMessageHash = keccak256(
+            abi.encodePacked(
+                tokenAddress,
+                amountIn,
+                amountOut,
+                destinationVault,
+                destinationAddress,
+                transferIndex,
+                signedAVSMessage
+            )
+        );
+        require(
+            attestationMessageHash == cannonicalAttestationSignedMessage,
+            "Invalid canonical attestation message hash"
+        );
+    }
 
     function decodeMessageHash(bytes32 messageHash) internal pure returns (BridgeRequestData memory) {
         return abi.decode(abi.encodePacked(messageHash), (BridgeRequestData));
