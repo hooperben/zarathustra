@@ -1,9 +1,13 @@
 import { ethers } from "ethers";
 import * as dotenv from "dotenv";
 import { delegationABI } from "./abis/delegationABI";
-import { contractABI } from './abis/contractABI';
-import { registryABI } from './abis/registryABI';
-import { avsDirectoryABI } from './abis/avsDirectoryABI';
+import { contractABI } from "./abis/contractABI";
+import { registryABI } from "./abis/registryABI";
+import { avsDirectoryABI } from "./abis/avsDirectoryABI";
+
+import { vaultABI } from "./abis/vaultABI";
+import { tokenABI } from "./abis/tokenABI";
+
 dotenv.config();
 
 const provider = new ethers.providers.JsonRpcProvider(process.env.RPC_URL);
@@ -14,90 +18,186 @@ const contractAddress = process.env.CONTRACT_ADDRESS!;
 const stakeRegistryAddress = process.env.STAKE_REGISTRY_ADDRESS!;
 const avsDirectoryAddress = process.env.AVS_DIRECTORY_ADDRESS!;
 
-const delegationManager = new ethers.Contract(delegationManagerAddress, delegationABI, wallet);
+const deployedVaultContract = "0x71C95911E9a5D330f4D621842EC243EE1343292e";
+const deployedTokenContract = "0x948B3c65b89DF0B4894ABE91E6D02FE579834F8F";
+
+const delegationManager = new ethers.Contract(
+  delegationManagerAddress,
+  delegationABI,
+  wallet
+);
 const contract = new ethers.Contract(contractAddress, contractABI, wallet);
-const registryContract = new ethers.Contract(stakeRegistryAddress, registryABI, wallet);
-const avsDirectory = new ethers.Contract(avsDirectoryAddress, avsDirectoryABI, wallet);
+const registryContract = new ethers.Contract(
+  stakeRegistryAddress,
+  registryABI,
+  wallet
+);
+const avsDirectory = new ethers.Contract(
+  avsDirectoryAddress,
+  avsDirectoryABI,
+  wallet
+);
 
-const signAndRespondToTask = async (taskIndex: number, taskCreatedBlock: number, taskName: string) => {
-    const message = `Hello, ${taskName}`;
-    const messageHash = ethers.utils.solidityKeccak256(["string"], [message]);
-    const messageBytes = ethers.utils.arrayify(messageHash);
-    const signature = await wallet.signMessage(messageBytes);
+const VaultContract = new ethers.Contract(
+  deployedVaultContract,
+  vaultABI,
+  wallet
+);
 
-    console.log(
-        `Signing and responding to task ${taskIndex}`
-    )
+const TokenContract = new ethers.Contract(
+  deployedTokenContract,
+  tokenABI,
+  wallet
+);
 
-    const tx = await contract.respondToTask(
-        { name: taskName, taskCreatedBlock: taskCreatedBlock },
-        taskIndex,
-        signature
-    );
-    await tx.wait();
-    console.log(`Responded to task.`);
+const signAndRespondToTask = async (
+  taskIndex: number,
+  taskCreatedBlock: number,
+  taskName: string
+) => {
+  const message = `Hello, ${taskName}`;
+  const messageHash = ethers.utils.solidityKeccak256(["string"], [message]);
+  const messageBytes = ethers.utils.arrayify(messageHash);
+  const signature = await wallet.signMessage(messageBytes);
+
+  console.log(`Signing and responding to task ${taskIndex}`);
+
+  const tx = await contract.respondToTask(
+    { name: taskName, taskCreatedBlock: taskCreatedBlock },
+    taskIndex,
+    signature
+  );
+  await tx.wait();
+  console.log(`Responded to task.`);
 };
 
 const registerOperator = async () => {
-    const tx1 = await delegationManager.registerAsOperator({
-        earningsReceiver: await wallet.address,
-        delegationApprover: "0x0000000000000000000000000000000000000000",
-        stakerOptOutWindowBlocks: 0
-    }, "");
-    await tx1.wait();
-    console.log("Operator registered on EL successfully");
+  const tx1 = await delegationManager.registerAsOperator(
+    {
+      earningsReceiver: wallet.address,
+      delegationApprover: "0x0000000000000000000000000000000000000000",
+      stakerOptOutWindowBlocks: 0,
+    },
+    ""
+  );
+  await tx1.wait();
+  console.log("Operator registered on EL successfully");
 
-    const salt = ethers.utils.hexlify(ethers.utils.randomBytes(32));
-    const expiry = Math.floor(Date.now() / 1000) + 3600; // Example expiry, 1 hour from now
+  const salt = ethers.utils.hexlify(ethers.utils.randomBytes(32));
+  const expiry = Math.floor(Date.now() / 1000) + 3600; // Example expiry, 1 hour from now
 
-    // Define the output structure
-    let operatorSignature = {
-        expiry: expiry,
-        salt: salt,
-        signature: ""
-    };
+  // Define the output structure
+  let operatorSignature = {
+    expiry: expiry,
+    salt: salt,
+    signature: "",
+  };
 
-    // Calculate the digest hash using the avsDirectory's method
-    const digestHash = await avsDirectory.calculateOperatorAVSRegistrationDigestHash(
-        wallet.address, 
-        contract.address, 
-        salt, 
-        expiry
+  // Calculate the digest hash using the avsDirectory's method
+  const digestHash =
+    await avsDirectory.calculateOperatorAVSRegistrationDigestHash(
+      wallet.address,
+      contract.address,
+      salt,
+      expiry
     );
 
-    // Sign the digest hash with the operator's private key
-    const signingKey = new ethers.utils.SigningKey(process.env.PRIVATE_KEY!);
-    const signature = signingKey.signDigest(digestHash);
-    
-    // Encode the signature in the required format
-    operatorSignature.signature = ethers.utils.joinSignature(signature);
+  // Sign the digest hash with the operator's private key
+  const signingKey = new ethers.utils.SigningKey(process.env.PRIVATE_KEY!);
+  const signature = signingKey.signDigest(digestHash);
 
-    const tx2 = await registryContract.registerOperatorWithSignature(
-        wallet.address,
-        operatorSignature
-    );
-    await tx2.wait();
-    console.log("Operator registered on AVS successfully");
+  // Encode the signature in the required format
+  operatorSignature.signature = ethers.utils.joinSignature(signature);
+
+  const tx2 = await registryContract.registerOperatorWithSignature(
+    wallet.address,
+    operatorSignature
+  );
+  await tx2.wait();
+  console.log("Operator registered on AVS successfully");
 };
 
 const monitorNewTasks = async () => {
-    await contract.createNewTask("EigenWorld");
+  await contract.createNewTask("EigenWorld");
 
-    contract.on("NewTaskCreated", async (taskIndex: number, task: any) => {
-        console.log(`New task detected: Hello, ${task.name}`);
-        await signAndRespondToTask(taskIndex, task.taskCreatedBlock, task.name);
+  contract.on("NewTaskCreated", async (taskIndex: number, task: any) => {
+    console.log(`New task detected: Hello, ${task.name}`);
+    await signAndRespondToTask(taskIndex, task.taskCreatedBlock, task.name);
+  });
+
+  VaultContract.on("BridgeRequest", async (sender, amount, ...event) => {
+    console.log("we got a bridge request: ");
+    console.log("sender: ", sender);
+    console.log("amount: ", amount);
+
+    let formattedArgs: any = {};
+
+    event.map((e) => {
+      if (e.args) {
+        const args = Object.keys(e.args).map((key) => {
+          return `"${key}": "${e.args[key]}"`;
+        });
+
+        formattedArgs = JSON.parse(`{${args.join(",")}}`);
+      }
     });
 
-    console.log("Monitoring for new tasks...");
+    const {
+      user,
+      tokenAddress,
+      amountIn,
+      amountOut,
+      destinationVault,
+      destinationAddress,
+      transferIndex,
+    } = formattedArgs;
+
+    // now we need to encode and sign all the args
+    const encodedArgs = ethers.utils.defaultAbiCoder.encode(
+      [
+        "address",
+        "address",
+        "uint256",
+        "uint256",
+        "address",
+        "address",
+        "uint256",
+      ],
+      [
+        user,
+        tokenAddress,
+        amountIn,
+        amountOut,
+        destinationVault,
+        destinationAddress,
+        transferIndex,
+      ]
+    );
+
+    const messageHash = ethers.utils.solidityKeccak256(
+      ["bytes"],
+      [encodedArgs]
+    );
+
+    const signature = await wallet.signMessage(
+      ethers.utils.arrayify(messageHash)
+    );
+
+    console.log(signature);
+
+    // console.log("txHash", event);
+  });
+
+  console.log("Monitoring for new tasks...");
 };
 
 const main = async () => {
-    await registerOperator();
-    monitorNewTasks().catch((error) => {
-        console.error("Error monitoring tasks:", error);
-    });
+  await registerOperator();
+  monitorNewTasks().catch((error) => {
+    console.error("Error monitoring tasks:", error);
+  });
 };
 
 main().catch((error) => {
-    console.error("Error in main function:", error);
+  console.error("Error in main function:", error);
 });

@@ -3,14 +3,34 @@ pragma solidity ^0.8.2;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-// import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-
 import "./SignatureVerifier.sol";
 
-contract Vault is Ownable {
+import "@eigenlayer/contracts/libraries/BytesLib.sol";
+import "@eigenlayer/contracts/core/DelegationManager.sol";
+import "@eigenlayer-middleware/src/unaudited/ECDSAServiceManagerBase.sol";
+import "@eigenlayer-middleware/src/unaudited/ECDSAStakeRegistry.sol";
+import "@openzeppelin-upgrades/contracts/utils/cryptography/ECDSAUpgradeable.sol";
+import "@eigenlayer/contracts/permissions/Pausable.sol";
+import {IRegistryCoordinator} from "@eigenlayer-middleware/src/interfaces/IRegistryCoordinator.sol";
+
+contract Vault is ECDSAServiceManagerBase, Pausable {
+    using BytesLib for bytes;
+    using ECDSAUpgradeable for bytes32;
     using SignatureVerifier for bytes32;
 
-    constructor() Ownable() {}
+    /// TODO review if these are needed/need to be refactored
+    uint32 public latestTaskNum;
+    mapping(uint32 => bytes32) public allTaskHashes;
+    mapping(address => mapping(uint32 => bytes)) public allTaskResponses;
+
+    modifier onlyOperator() {
+        require(
+            ECDSAStakeRegistry(stakeRegistry).operatorRegistered(msg.sender) ==
+                true,
+            "Operator must be the caller"
+        );
+        _;
+    }
 
     event BridgeRequest(
         address indexed user,
@@ -22,18 +42,48 @@ contract Vault is Ownable {
         uint256 transferIndex
     );
 
+    struct BridgeRequestData {
+        address user;
+        address tokenAddress;
+        uint256 amountIn;
+        uint256 amountOut;
+        address destinationVault;
+        address destinationAddress;
+        uint256 transferIndex;
+    }
+
     mapping(address => uint256) private nextUserTransferIndexes;
     mapping(address => bool) private whitelistedSigners;
 
     uint256 public bridgeFee;
-    uint256 public crankFee;
+    uint256 public crankGasCost;
+    address public canonicalSigner;
+
+    constructor(
+        address _canonicalSigner,
+        uint256 _crankGasCost,
+        address _avsDirectory,
+        address _stakeRegistry,
+        address _delegationManager
+    )
+        ECDSAServiceManagerBase(
+            _avsDirectory,
+            _stakeRegistry,
+            address(0), // hello-world doesn't need to deal with payments
+            _delegationManager
+        )
+    {
+        crankGasCost = _crankGasCost;
+        canonicalSigner = _canonicalSigner;
+        _transferOwnership(msg.sender);
+    }
+
+    function setCanonicalSigner(address _canonicalSigner) external onlyOwner {
+        canonicalSigner = _canonicalSigner;
+    }
 
     function setBridgeFee(uint256 _bridgeFee) external onlyOwner {
         bridgeFee = _bridgeFee;
-    }
-
-    function setCrankFee(uint256 _crankFee) external onlyOwner {
-        crankFee = _crankFee;
     }
 
     function bridgeERC20(address tokenAddress, uint256 amountIn) internal {
@@ -43,6 +93,33 @@ contract Vault is Ownable {
             amountIn
         );
         require(success, "Transfer failed");
+    }
+
+    function avsAttestationReply(
+        address tokenAddress,
+        uint256 amountIn,
+        uint256 amountOut,
+        address destinationVault,
+        address destinationAddress,
+        uint256 transferIndex
+    ) external onlyOperator {
+        require(
+            operatorHasMinimumWeight(msg.sender),
+            "Operator does not have match the weight requirements"
+        );
+        // TODO need to add a duplicate check here
+
+        // recreate the signature, check it matches
+        // bytes32 messageHash = keccak256(
+        //     abi.encodePacked(
+        //         tokenAddress,
+        //         amountIn,
+        //         amountOut,
+        //         destinationVault,
+        //         destinationAddress,
+        //         transferIndex
+        //     )
+        // );
     }
 
     function bridge(
@@ -75,36 +152,55 @@ contract Vault is Ownable {
     }
 
     function releaseFunds(
-        address user,
-        address tokenAddress,
-        uint256 amountIn,
-        uint256 amountOut,
-        address destinationVault,
-        address destinationAddress,
-        uint256 transferIndex,
+        bytes32 canonicalSignedMessage,
+        uint8 canonicalV,
+        bytes32 canonicalR,
+        bytes32 canonicalS,
+        bytes32 messageHash,
         uint8 v,
         bytes32 r,
         bytes32 s
     ) public {
-        // Use address(this) for destinationVault to verfiy that the signature is for this vault without adding extra OPs
-        bytes32 messageHash = SignatureVerifier.getMessageHash(
-            user,
-            tokenAddress,
-            amountIn,
-            amountOut,
-            address(this),
-            destinationAddress,
-            transferIndex
+        // Verify canonical signer's signature
+        require(
+            SignatureVerifier.getSigner(
+                canonicalSignedMessage,
+                canonicalV,
+                canonicalR,
+                canonicalS
+            ) == canonicalSigner,
+            "Invalid canonical signature"
         );
+
+        // Verify whitelisted signer's signature on the original message hash
         address signer = SignatureVerifier.getSigner(messageHash, v, r, s);
-
         require(whitelistedSigners[signer], "Invalid signature");
-        require(destinationVault == address(this), "Invalid destination vault");
 
-        IERC20(tokenAddress).transfer(destinationAddress, amountOut);
+        // Decode the original message hash to get BridgeRequestData
+        BridgeRequestData memory canonicalRequestData = decodeMessageHash(
+            canonicalSignedMessage
+        );
+        BridgeRequestData memory requestData = decodeMessageHash(messageHash);
 
-        uint256 payout = crankFee;
-        if (address(this).balance < crankFee) {
+        // Verify all fields match between the canonical and whitelisted signed messages
+        require(
+            keccak256(abi.encode(canonicalRequestData)) ==
+                keccak256(abi.encode(requestData)),
+            "Mismatched request data"
+        );
+
+        require(
+            requestData.destinationVault == address(this),
+            "Invalid destination vault"
+        );
+
+        IERC20(requestData.tokenAddress).transfer(
+            requestData.destinationAddress,
+            requestData.amountOut
+        );
+
+        uint256 payout = crankGasCost * tx.gasprice;
+        if (address(this).balance < payout) {
             payout = address(this).balance;
         }
 
@@ -112,6 +208,12 @@ contract Vault is Ownable {
             (bool sent, ) = msg.sender.call{value: payout}("");
             require(sent, "Failed to send crank fee");
         }
+    }
+
+    function decodeMessageHash(
+        bytes32 messageHash
+    ) internal pure returns (BridgeRequestData memory) {
+        return abi.decode(abi.encodePacked(messageHash), (BridgeRequestData));
     }
 
     function whitelistSigner(address signer) public onlyOwner {

@@ -18,18 +18,36 @@ contract CounterTest is Test {
     address public alice;
 
     uint256 bridgeFee = 0.005 ether;
+    uint256 crankGasCost = 100_000;
 
     function setUp() public {
         deployer = address(0x4);
 
         vm.startPrank(deployer);
 
-        vault = new Vault();
+        address _avsDirectory = 0x5FC8d32690cc91D4c39d9d3abcBD16989F875707;
+        address _stakeRegistry = 0x9E545E3C0baAB3E08CdfD552C960A1050f373042;
+        address _delegationManager = 0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9;
+
+        // this is all deployers cause this test base sucks
+        vault = new Vault(
+            deployer,
+            crankGasCost,
+            _avsDirectory,
+            _stakeRegistry,
+            _delegationManager
+        );
         testERC20 = new TestERC20();
 
         vault.setBridgeFee(bridgeFee);
 
-        remoteVault = new Vault();
+        remoteVault = new Vault(
+            deployer,
+            crankGasCost,
+            _avsDirectory,
+            _stakeRegistry,
+            _delegationManager
+        );
         remoteErc20 = new TestERC20();
 
         vm.stopPrank();
