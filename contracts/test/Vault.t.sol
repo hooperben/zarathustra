@@ -36,12 +36,12 @@ contract VaultTest is Test, EIP712("Zarathustra", "1") {
 
         vm.startPrank(deployer);
 
-        vault = new Vault(canonicalSigner, crankGasCost);
+        vault = new Vault();
         testERC20 = new TestERC20();
 
         vault.setBridgeFee(bridgeFee);
 
-        remoteVault = new Vault(canonicalSigner, crankGasCost);
+        remoteVault = new Vault();
         remoteErc20 = new TestERC20();
 
         remoteVault.whitelistSigner(independentSigner);
@@ -82,7 +82,10 @@ contract VaultTest is Test, EIP712("Zarathustra", "1") {
 
         bytes32 digest = remoteVault.getDigest(brd);
 
-        (uint8 v1, bytes32 r1, bytes32 s1) = vm.sign(canonicalSignerPkey, digest);
+        (uint8 v1, bytes32 r1, bytes32 s1) = vm.sign(
+            canonicalSignerPkey,
+            digest
+        );
 
         testERC20.approve(address(vault), amount);
         vault.bridge{value: bridgeFee}({
@@ -100,8 +103,10 @@ contract VaultTest is Test, EIP712("Zarathustra", "1") {
         assertEq(testERC20.balanceOf(address(vault)), amount);
         assertEq(testERC20.balanceOf(alice), 0);
 
-
-        (uint8 v2, bytes32 r2, bytes32 s2) = vm.sign(independentSignerPkey, digest);
+        (uint8 v2, bytes32 r2, bytes32 s2) = vm.sign(
+            independentSignerPkey,
+            digest
+        );
 
         // Bob calls the crank with the signatures
         vm.startPrank(bob);
@@ -122,7 +127,10 @@ contract VaultTest is Test, EIP712("Zarathustra", "1") {
 
         // Verify invalid signatures revert
         bytes32 invalidMessageHash = keccak256(abi.encodePacked(uint256(123)));
-        (uint8 v3, bytes32 r3, bytes32 s3) = vm.sign(uint256(uint160(canonicalSigner)), invalidMessageHash);
+        (uint8 v3, bytes32 r3, bytes32 s3) = vm.sign(
+            uint256(uint160(canonicalSigner)),
+            invalidMessageHash
+        );
 
         vm.expectRevert("Invalid canonical signature");
         remoteVault.releaseFunds(
@@ -132,7 +140,10 @@ contract VaultTest is Test, EIP712("Zarathustra", "1") {
         );
 
         // Verify non-matching third-party signature reverts
-        (uint8 v4, bytes32 r4, bytes32 s4) = vm.sign(uint256(uint160(address(0x7))), digest);
+        (uint8 v4, bytes32 r4, bytes32 s4) = vm.sign(
+            uint256(uint160(address(0x7))),
+            digest
+        );
 
         vm.expectRevert("Invalid signature");
         remoteVault.releaseFunds(
