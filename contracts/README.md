@@ -1,3 +1,16 @@
+# Zarathustra Smart Contracts
+run `make build` to build. `make test` to run test suite.
+
+## Protocol Outline
+
+User deposits funds to a vault specifying:
+- source asset address
+- source asset amountIn
+- source vaultAddress
+- destination asset address
+- destination asset minAmountOut
+- destination vaultAddress
+
 ## Foundry
 
 **Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**

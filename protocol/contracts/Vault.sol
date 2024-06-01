@@ -8,6 +8,7 @@ contract Vault {
 
     event GraphDepositTracker(address indexed user, uint256 indexed amount);
 
+
     constructor(address _token) {
         token = IERC20(_token);
     }
