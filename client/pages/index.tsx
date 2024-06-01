@@ -12,10 +12,21 @@ const inter = Inter({ subsets: ["latin"] });
 
 export default function Home() {
 
-  const [textBoxValue, setTextBoxValue] = useState(''); // State initialization inside the component
+  const [textBoxValue, setTextBoxValue] = useState<number>(NaN); // State initialization inside the component
+  const [selectedToken, setSelectedToken] = useState({ src: null, alt: "Token" });
+  const [walletConnected, setWalletConnected] = useState(false);
 
-  const handleTextBoxChange = (newValue: string) => {
+  const handleTextBoxChange = (newValue: number) => {
     setTextBoxValue(newValue); // Update the state with the new value
+  };
+
+  const handleTokenSelect = (src, alt) => {
+    setSelectedToken({ src, alt });
+  };
+
+  const handleConnectWallet = () => {
+    // Logic to connect wallet
+    setWalletConnected(true); // Set walletConnected to true when wallet is connected
   };
 
   // Am I hallucinating or is there a shwarma in front of me??? - Thomas
@@ -26,8 +37,7 @@ export default function Home() {
       <div className="flex flex-col items-center min-w-96 min-h-80 m-52 rounded-3xl shadow-xl" style={{ backgroundColor: 'rgba(200, 200, 200, 0.35)', border: '0.5px solid white', paddingLeft: '20px', paddingRight: '20px'}}>
         
       <div className="flex flex-row ml-80 mt-3">
-
-        <SettingsButton></SettingsButton>
+        <CogDrawer/>
       </div>
 
         <div className="flex flex-row my-5 px-5 py-1 items-center space-x-3 bg-white rounded-xl shadow-lg">
@@ -35,10 +45,11 @@ export default function Home() {
             <Dropdown/>
           </div>
           <div className="flex" >
+            
             <TextBox value={textBoxValue} onChange={handleTextBoxChange} />
           </div>
           <div>
-            <Tokendropdown/>
+            <Tokendropdown selectedToken={selectedToken} onSelect={handleTokenSelect}/>
           </div>
         </div>
 
@@ -50,19 +61,15 @@ export default function Home() {
             <TextBox value={textBoxValue} onChange={handleTextBoxChange} />
           </div>
           <div>
-          <Tokendropdown/>
+          <Tokendropdown selectedToken={selectedToken} onSelect={handleTokenSelect}/>
           </div>
         </div>
 
         <div className="flex my-12">
-            <SubmitButton/>
+          <SubmitButton disabled={walletConnected} onClick={handleConnectWallet}/>
         </div>
       </div>
 
-      <div>
-        <CogDrawer></CogDrawer>
-      </div>
-      
     </main>
   );
 }

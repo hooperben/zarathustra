@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/drawer"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import SettingsButton from "./SettingsButton"
 
 export function CogDrawer() {
   const [open, setOpen] = React.useState(false)
@@ -32,10 +33,9 @@ export function CogDrawer() {
     return (
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
-
-        
-          <Button variant="outline">Edit Profile</Button>
-
+          <div>
+            <SettingsButton/>
+          </div>
         </DialogTrigger>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -53,9 +53,9 @@ export function CogDrawer() {
   return (
     <Drawer open={open} onOpenChange={setOpen}>
       <DrawerTrigger asChild>
-
-        <Button variant="outline">Edit Profile</Button>
-
+        <div>
+          <SettingsButton/>
+        </div>
       </DrawerTrigger>
       <DrawerContent>
         <DrawerHeader className="text-left">

@@ -2,11 +2,11 @@ import Image from "next/image"
 
 export default function SettingsButton() {
   return (
-    <div className="">
+    <div>
         <Image
         src="cog.svg"
         alt={"settings"}
-        className="dark:invert px-5;"
+        className="px-5;"
         width={20}
         height={20}
         padding-right={20}
