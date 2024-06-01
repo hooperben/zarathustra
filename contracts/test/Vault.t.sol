@@ -24,12 +24,12 @@ contract CounterTest is Test {
 
         vm.startPrank(deployer);
 
-        vault = new Vault();
+        vault = new Vault(deployer);
         testERC20 = new TestERC20();
 
         vault.setBridgeFee(bridgeFee);
 
-        remoteVault = new Vault();
+        remoteVault = new Vault(deployer);
         remoteErc20 = new TestERC20();
 
         vm.stopPrank();
