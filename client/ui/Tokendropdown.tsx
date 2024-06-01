@@ -10,10 +10,10 @@ import {
 
 import Image from 'next/image'
 
-export const Dropdown = () => {
+export const Tokendropdown = () => {
   const [selectedImage, setSelectedImage] = useState({
     src: null,
-    alt: "Chain",
+    alt: "Token",
   });
 
   const handleSelect = (src, alt) => {
@@ -21,11 +21,11 @@ export const Dropdown = () => {
   };
 
   return (
-    <DropdownMenu style={{ userSelect: 'none'}}>
-      <DropdownMenuTrigger style={{ userSelect: 'none', width: '50px', justifyContent: 'center', alignItems: 'center', textAlign: 'center', height: '50px'}}>
+    <DropdownMenu style={{ userSelect: 'none' }}>
+      <DropdownMenuTrigger style={{ userSelect: 'none', width: '50px', justifyContent: 'center', alignItems: 'center', textAlign: 'center', height: '40px'}}>
       {selectedImage.src ? (
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', userSelect: 'none'}}>
-          <Image 
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center',  userSelect: 'none'}}>
+          <Image
             src={selectedImage.src}
             alt={selectedImage.alt}
             width={30}
@@ -34,11 +34,11 @@ export const Dropdown = () => {
           />
           </div>
         ) : (
-          "Chain"
+          "Token"
         )}
       </DropdownMenuTrigger>
-      <DropdownMenuContent >
-      <DropdownMenuLabel>Chains</DropdownMenuLabel>
+      <DropdownMenuContent style={{ border: '1px solid #ccc', borderRadius: '5px', padding: '10px' }}>
+        <DropdownMenuLabel>Tokens</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => handleSelect('Ethereum.svg', 'Ethereum')}>
           
@@ -48,10 +48,23 @@ export const Dropdown = () => {
             alt={selectedImage.alt}
             className="dark:invert"
             width={20}
-            height={25}
+            height={20}
             />
         </div>
-            Ethereum
+            ETHER
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => handleSelect('Eigen.svg', 'Eigen')}>
+          
+        <div style={{ paddingRight: '7px' }}>
+          <Image 
+            src="Eigen.svg"
+            alt={selectedImage.alt}
+            className="dark:invert"
+            width={20}
+            height={20}
+            />
+        </div>
+            EIGEN
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => handleSelect('Optimism.svg', 'Optimism')}>
           
@@ -62,10 +75,11 @@ export const Dropdown = () => {
             className="dark:invert px-5;"
             width={20}
             height={20}
-            paddingRight={20}
+            padding-right={20}
             />
         </div>
-        Optimism
+            OP
+
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => handleSelect('Polygon.svg', 'Polygon')}>
           
@@ -78,7 +92,7 @@ export const Dropdown = () => {
             height={22}
             />
         </div>
-            Polygon
+            MATIC
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => handleSelect('Solana.svg', 'Solana')}>
           
@@ -91,7 +105,7 @@ export const Dropdown = () => {
             height={20}
             />
         </div>
-            Solana
+            SOL
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => handleSelect('Schwarma.svg', 'Schwarma')}>
           
@@ -104,7 +118,7 @@ export const Dropdown = () => {
             height={20}
             />
         </div>
-            Schwarma
+            SCWR
         </DropdownMenuItem>
 
       </DropdownMenuContent>
