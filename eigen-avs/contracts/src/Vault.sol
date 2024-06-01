@@ -3,11 +3,14 @@ pragma solidity ^0.8.2;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+// import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+
 import "./SignatureVerifier.sol";
 
-contract Vault is Ownable, ReentrancyGuard {
+contract Vault is Ownable {
     using SignatureVerifier for bytes32;
+
+    constructor() Ownable() {}
 
     event BridgeRequest(
         address indexed user,
@@ -19,34 +22,18 @@ contract Vault is Ownable, ReentrancyGuard {
         uint256 transferIndex
     );
 
-    struct BridgeRequestData {
-        address user;
-        address tokenAddress;
-        uint256 amountIn;
-        uint256 amountOut;
-        address destinationVault;
-        address destinationAddress;
-        uint256 transferIndex;
-    }
-
     mapping(address => uint256) private nextUserTransferIndexes;
     mapping(address => bool) private whitelistedSigners;
 
     uint256 public bridgeFee;
-    uint256 public crankGasCost;
-    address public canonicalSigner;
-
-    constructor(address _canonicalSigner, uint256 _crankGasCost) Ownable(msg.sender) {
-        crankGasCost = _crankGasCost;
-        canonicalSigner = _canonicalSigner;
-    }
-
-    function setCanonicalSigner(address _canonicalSigner) external onlyOwner {
-        canonicalSigner = _canonicalSigner;
-    }
+    uint256 public crankFee;
 
     function setBridgeFee(uint256 _bridgeFee) external onlyOwner {
         bridgeFee = _bridgeFee;
+    }
+
+    function setCrankFee(uint256 _crankFee) external onlyOwner {
+        crankFee = _crankFee;
     }
 
     function bridgeERC20(address tokenAddress, uint256 amountIn) internal {
@@ -65,7 +52,7 @@ contract Vault is Ownable, ReentrancyGuard {
         address destinationVault,
         address destinationAddress,
         uint256 transferIndex
-    ) public payable nonReentrant {
+    ) public payable {
         require(
             transferIndex == nextUserTransferIndexes[msg.sender],
             "Invalid transfer index"
@@ -88,38 +75,36 @@ contract Vault is Ownable, ReentrancyGuard {
     }
 
     function releaseFunds(
-        bytes32 canonicalSignedMessage,
-        uint8 canonicalV,
-        bytes32 canonicalR,
-        bytes32 canonicalS,
-        bytes32 messageHash,
+        address user,
+        address tokenAddress,
+        uint256 amountIn,
+        uint256 amountOut,
+        address destinationVault,
+        address destinationAddress,
+        uint256 transferIndex,
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) public nonReentrant {
-        // Verify canonical signer's signature
-        require(
-            SignatureVerifier.getSigner(canonicalSignedMessage, canonicalV, canonicalR, canonicalS) == canonicalSigner,
-            "Invalid canonical signature"
+    ) public {
+        // Use address(this) for destinationVault to verfiy that the signature is for this vault without adding extra OPs
+        bytes32 messageHash = SignatureVerifier.getMessageHash(
+            user,
+            tokenAddress,
+            amountIn,
+            amountOut,
+            address(this),
+            destinationAddress,
+            transferIndex
         );
-
-        // Verify whitelisted signer's signature on the original message hash
         address signer = SignatureVerifier.getSigner(messageHash, v, r, s);
+
         require(whitelistedSigners[signer], "Invalid signature");
+        require(destinationVault == address(this), "Invalid destination vault");
 
-        // Decode the original message hash to get BridgeRequestData
-        BridgeRequestData memory canonicalRequestData = decodeMessageHash(canonicalSignedMessage);
-        BridgeRequestData memory requestData = decodeMessageHash(messageHash);
+        IERC20(tokenAddress).transfer(destinationAddress, amountOut);
 
-        // Verify all fields match between the canonical and whitelisted signed messages
-        require(keccak256(abi.encode(canonicalRequestData)) == keccak256(abi.encode(requestData)), "Mismatched request data");
-
-        require(requestData.destinationVault == address(this), "Invalid destination vault");
-
-        IERC20(requestData.tokenAddress).transfer(requestData.destinationAddress, requestData.amountOut);
-
-        uint256 payout = crankGasCost * tx.gasprice;
-        if (address(this).balance < payout) {
+        uint256 payout = crankFee;
+        if (address(this).balance < crankFee) {
             payout = address(this).balance;
         }
 
@@ -127,10 +112,6 @@ contract Vault is Ownable, ReentrancyGuard {
             (bool sent, ) = msg.sender.call{value: payout}("");
             require(sent, "Failed to send crank fee");
         }
-    }
-
-    function decodeMessageHash(bytes32 messageHash) internal pure returns (BridgeRequestData memory) {
-        return abi.decode(abi.encodePacked(messageHash), (BridgeRequestData));
     }
 
     function whitelistSigner(address signer) public onlyOwner {

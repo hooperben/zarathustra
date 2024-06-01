@@ -18,19 +18,18 @@ contract CounterTest is Test {
     address public alice;
 
     uint256 bridgeFee = 0.005 ether;
-    uint256 crankGasCost = 100_000;
 
     function setUp() public {
         deployer = address(0x4);
 
         vm.startPrank(deployer);
 
-        vault = new Vault(deployer, crankGasCost);
+        vault = new Vault();
         testERC20 = new TestERC20();
 
         vault.setBridgeFee(bridgeFee);
 
-        remoteVault = new Vault(deployer, crankGasCost);
+        remoteVault = new Vault();
         remoteErc20 = new TestERC20();
 
         vm.stopPrank();
