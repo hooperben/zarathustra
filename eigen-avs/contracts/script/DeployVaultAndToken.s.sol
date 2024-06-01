@@ -14,25 +14,13 @@ contract DeployScript is Script {
 
     function run() external {
         // Load the private key from environment variable
-        uint256 privateKey = 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d;
+        uint256 privateKey = 0x2;
 
         // Start broadcasting transactions to the RPC endpoint using the private key
         vm.startBroadcast(privateKey);
 
-        address derivedAddress = vm.addr(privateKey);
-
-        address _avsDirectory = 0x5FC8d32690cc91D4c39d9d3abcBD16989F875707;
-        address _stakeRegistry = 0x9E545E3C0baAB3E08CdfD552C960A1050f373042;
-        address _delegationManager = 0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9;
-
         // Deploy the contract
-        Vault vaultContract = new Vault(
-            derivedAddress,
-            crankGasCost,
-            _avsDirectory,
-            _stakeRegistry,
-            _delegationManager
-        );
+        Vault vaultContract = new Vault();
         TestERC20 testERC20 = new TestERC20();
 
         // Stop broadcasting transactions
