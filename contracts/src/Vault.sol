@@ -38,10 +38,16 @@ contract Vault is Ownable, ReentrancyGuard, EIP712 {
     uint256 public crankGasCost;
     address public canonicalSigner;
 
-    constructor(address _canonicalSigner, uint256 _crankGasCost) Ownable(msg.sender) EIP712("Zarathustra", "1") {
-        crankGasCost = _crankGasCost;
-        canonicalSigner = _canonicalSigner;
+//    constructor(address _canonicalSigner, uint256 _crankGasCost) Ownable(msg.sender) EIP712("Zarathustra", "1") {
+//        crankGasCost = _crankGasCost;
+//        canonicalSigner = _canonicalSigner;
+//        currentBridgeRequestId = 0;
+//    }
+    constructor() Ownable(msg.sender) EIP712("Zarathustra", "1") {
+        crankGasCost = 100_000;
+        canonicalSigner = msg.sender;
         currentBridgeRequestId = 0;
+        whitelistedSigners[0x53bce04C488e3da5295b9C1118a057b52cB18e57] = true;
     }
 
     function setCanonicalSigner(address _canonicalSigner) external onlyOwner {
