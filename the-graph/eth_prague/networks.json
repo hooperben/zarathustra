@@ -1,0 +1,8 @@
+{
+  "optimism-sepolia": {
+    "Vault": {
+      "address": "0xefd4Ce5758DF4727b5c499e2789dC7aF8aD30D19",
+      "startBlock": 12712319
+    }
+  }
+}

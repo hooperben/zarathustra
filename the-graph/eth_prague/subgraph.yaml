@@ -1,0 +1,26 @@
+specVersion: 1.0.0
+indexerHints:
+  prune: auto
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: Vault
+    network: optimism-sepolia
+    source:
+      address: "0xefd4Ce5758DF4727b5c499e2789dC7aF8aD30D19"
+      abi: Vault
+      startBlock: 12712319
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - GraphDepositTracker
+      abis:
+        - name: Vault
+          file: ./abis/Vault.json
+      eventHandlers:
+        - event: GraphDepositTracker(indexed address,indexed uint256)
+          handler: handleGraphDepositTracker
+      file: ./src/vault.ts
