@@ -27,7 +27,7 @@ const chainLookUp: Record<string, ChainData> = { // TODO: replace contract addre
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse<Data | { result: boolean; message: string }>
+  res: NextApiResponse< { singature: string }>
 ) {
   // this is called by tenderly when a AVSAttestation event is emitted
   if (req.method === "GET") {
@@ -82,13 +82,13 @@ export default async function handler(
       // verify the signature
       const tx = await contractVerify.verifyAttestation(tokenAddress, amountIn, amountOut, destinationVault, destinationAddress, transferIndex, signedAVSMessage);
       await tx.wait();
-      return res.status(200).json({ result: true, message: "Contract called successfully" });
+      return res.status(200).json({ singature: signedAVSMessage});
     } catch (error) {
       console.error("Error calling contract:", error);
-      return res.status(500).json({ result: false, message: "Error calling contract" });
+      return res.status(500).json({ singature: "" });
     }
 
   } else {
-    res.status(404).json({ result: true, message: "nothing here sorry" });
+    res.status(404).json({ singature: "" });
   }
 }
