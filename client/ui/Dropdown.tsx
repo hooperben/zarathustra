@@ -12,11 +12,11 @@ import Image from 'next/image'
 
 export const Dropdown = () => {
   const [selectedImage, setSelectedImage] = useState({
-    src: null,
+    src: '',
     alt: "Chain",
   });
 
-  const handleSelect = (src, alt) => {
+  const handleSelect = (src: string, alt: string) => {
     setSelectedImage({ src, alt });
   };
 
