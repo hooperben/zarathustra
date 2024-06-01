@@ -1,0 +1,21 @@
+operator:
+  address: 0x53bce04C488e3da5295b9C1118a057b52cB18e57
+  earnings_receiver_address: 0x53bce04C488e3da5295b9C1118a057b52cB18e57
+  delegation_approver_address: "0x0000000000000000000000000000000000000000"
+  staker_opt_out_window_blocks: 0
+  metadata_url: "https://raw.githubusercontent.com/hooperben/zarathustra/7c48f517ac8af662c8afecc03318d0407b6b0b26/eigen-avs/contracts/metadata.json"
+el_delegation_manager_address: 0xA44151489861Fe9e3055d95adC98FbD462B948e7
+eth_rpc_url: https://holesky.infura.io/v3/
+private_key_store_path: ""
+signer_type: local_keystore
+chain_id: 17000
+fireblocks:
+  api_key: ""
+  secret_key: ""
+  base_url: ""
+  vault_account_name: ""
+  secret_storage_type: ""
+  aws_region: ""
+  timeout: 0
+web3:
+  url: ""
