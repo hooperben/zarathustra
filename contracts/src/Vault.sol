@@ -10,6 +10,8 @@ import "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import "./SignatureVerifier.sol";
 import "./Structs.sol";
 
+import "forge-std/console.sol";
+
 contract Vault is Ownable, ReentrancyGuard, EIP712 {
     using SignatureVerifier for bytes32;
 
@@ -61,6 +63,7 @@ contract Vault is Ownable, ReentrancyGuard, EIP712 {
         bytes memory signature
     ) public returns (address) {
         bytes32 digest = getDigest(data);
+        console.logBytes32(digest);
         return ECDSA.recover(digest, signature);
     }
 
@@ -99,6 +102,19 @@ contract Vault is Ownable, ReentrancyGuard, EIP712 {
             transferIndex
         );
 
+        bytes32 digest = getDigest(
+            Structs.BridgeRequestData(
+                msg.sender,
+                tokenAddress,
+                amountIn,
+                amountOut,
+                destinationVault,
+                destinationAddress,
+                transferIndex
+            )
+        );
+        console.logBytes32(digest);
+
         nextUserTransferIndexes[msg.sender]++;
     }
 
@@ -107,6 +123,8 @@ contract Vault is Ownable, ReentrancyGuard, EIP712 {
         bytes memory AVSSignature,
         Structs.BridgeRequestData memory data
     ) public nonReentrant {
+        console.log(data.user, data.tokenAddress, data.amountIn, data.amountOut);
+        console.log(data.destinationVault, data.destinationAddress, data.transferIndex);
         // Verify canonical signer's signaturegg
         require(getSigner(data, canonicalSignature) == canonicalSigner, "Invalid canonical signature");
 
@@ -115,6 +133,7 @@ contract Vault is Ownable, ReentrancyGuard, EIP712 {
 
         require(data.destinationVault == address(this), "Invalid destination vault");
 
+        IERC20(data.tokenAddress).approve(address(this), data.amountOut);
         IERC20(data.tokenAddress).transfer(data.destinationAddress, data.amountOut);
 
         uint256 payout = crankGasCost * tx.gasprice;

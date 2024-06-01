@@ -9,7 +9,7 @@ import {TestERC20} from "../src/TestERC20.sol";
 import "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import "../src/Structs.sol";
 
-contract CounterTest is Test, EIP712("Zarathustra", "1") {
+contract VaultTest is Test, EIP712("Zarathustra", "1") {
     Vault public vault;
     TestERC20 public testERC20;
 
@@ -55,6 +55,8 @@ contract CounterTest is Test, EIP712("Zarathustra", "1") {
         vm.deal(bob, 1 ether);
         vm.deal(address(vault), 1 ether);
         vm.deal(address(remoteVault), 1 ether);
+
+        testERC20.mint(address(remoteVault), 10 ether);
     }
 
     function test_bridge() public {
@@ -113,10 +115,10 @@ contract CounterTest is Test, EIP712("Zarathustra", "1") {
             amountOut: amount,
             destinationVault: address(remoteVault),
             destinationAddress: alice,
-            transferIndex: 0
+            transferIndex: uint256(0)
         });
 
-        bytes32 digest = vault.getDigest(brd);
+        bytes32 digest = remoteVault.getDigest(brd);
 
         (uint8 v1, bytes32 r1, bytes32 s1) = vm.sign(canonicalSignerPkey, digest);
         (uint8 v2, bytes32 r2, bytes32 s2) = vm.sign(independentSignerPkey, digest);
@@ -133,10 +135,10 @@ contract CounterTest is Test, EIP712("Zarathustra", "1") {
         vm.stopPrank();
 
         // Verify Alice receives the target tokens
-        assertEq(remoteErc20.balanceOf(alice), amount);
+        assertEq(testERC20.balanceOf(alice), amount);
 
         // Verify Bob receives the crank fee
-        assertEq(bob.balance, crankGasCost * tx.gasprice);
+        assertEq(bob.balance, 1 ether + crankGasCost * tx.gasprice);
 
         // Verify invalid signatures revert
         bytes32 invalidMessageHash = keccak256(abi.encodePacked(uint256(123)));
