@@ -1,6 +1,4 @@
 import * as React from "react"
-
-import { cn } from "@/lib/utils"
 import { useMediaQuery } from "@react-hook/media-query"
 import { Button } from "@/components/ui/button"
 import {
@@ -21,72 +19,88 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import SettingsButton from "./SettingsButton"
+import Image from "next/image"
 
-export function CogDrawer() {
-  const [open, setOpen] = React.useState(false)
-  const isDesktop = useMediaQuery("(min-width: 768px)")
+export function CogDrawer({ walletConnected, setWalletError, setWalletAddress }: { walletConnected: boolean, setWalletError: any, setWalletAddress: React.Dispatch<React.SetStateAction<string>> }) {
+  const [open, setOpen] = React.useState(false);
+  const isDesktop = useMediaQuery("(min-width: 768px)");
+
+  React.useEffect(() => {
+    setOpen(!walletConnected);
+  }, [walletConnected]);
+
+  const handleConnectWallet = async () => {
+    try {
+      const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+      if (accounts.length > 0) {
+        setWalletAddress(accounts[0]);
+        console.log(accounts[0]);
+      }
+    } catch (error) {
+      console.error("Error connecting wallet:", error);
+      setWalletError(true); 
+      return;
+    }
+
+    setOpen(false);
+  };
 
   if (isDesktop) {
     return (
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger asChild>
-          <div>
-            <SettingsButton/>
-          </div>
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] flex flex-col">
           <DialogHeader>
-            <DialogTitle>Edit profile</DialogTitle>
+            <DialogTitle>Connect Wallet</DialogTitle>
             <DialogDescription>
-              Make changes to your profile here. Click save when you're done.
+              Connect your MetaMask wallet to the bridge.
             </DialogDescription>
           </DialogHeader>
-          <ProfileForm />
+          <div className="flex justify-center">
+            <div className="flex">
+              <div className="flex justify-center">
+              <Image 
+                  src="MetaMask_Fox.svg"
+                  alt="MetaMask"
+                  className="dark:invert"
+                  width={20}
+                  height={25}
+                />
+              </div>
+              
+              <div>
+              <Button
+                onClick={handleConnectWallet}
+                style={{
+                  color: "rgba(255, 255, 255, 1)",
+                  backgroundColor: "rgba(25, 30, 35, 1)",
+                  width: "200px",
+                  transition: "background-color 0.3s ease",
+                }}
+                hoverStyle={{
+                  backgroundColor: "rgba(25, 30, 35, 0.5)",
+                }}
+              >
+                Connect Metamask
+              </Button>
+
+              </div>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
-    )
+    );
   }
 
   return (
     <Drawer open={open} onOpenChange={setOpen}>
-      <DrawerTrigger asChild>
-        <div>
-          <SettingsButton/>
-        </div>
-      </DrawerTrigger>
       <DrawerContent>
         <DrawerHeader className="text-left">
-          <DrawerTitle>Edit profile</DrawerTitle>
+          <DrawerTitle>Connect Wallet</DrawerTitle>
           <DrawerDescription>
             Make changes to your profile here. Click save when you're done.
           </DrawerDescription>
         </DrawerHeader>
-        <ProfileForm className="px-4" />
-        <DrawerFooter className="pt-2">
-          <DrawerClose asChild>
-            <Button variant="outline">Cancel</Button>
-          </DrawerClose>
-        </DrawerFooter>
       </DrawerContent>
     </Drawer>
-  )
-}
-
-function ProfileForm({ className }: React.ComponentProps<"form">) {
-  return (
-    <form className={cn("grid items-start gap-4", className)}>
-      <div className="grid gap-2">
-        <Label htmlFor="email">Email</Label>
-        <Input type="email" id="email" defaultValue="shadcn@example.com" />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="username">Username</Label>
-        <Input id="username" defaultValue="@shadcn" />
-      </div>
-      <Button type="submit">Save changes</Button>
-    </form>
-  )
+  );
 }
