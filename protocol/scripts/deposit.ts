@@ -1,4 +1,4 @@
-import hre, { deployments, ethers } from "hardhat";
+import { deployments, ethers } from "hardhat";
 import { TestErc20, Vault } from "../typechain-types";
 import { Contract, parseEther } from "ethers";
 
@@ -22,12 +22,12 @@ async function main() {
   // approve the vault
   let tx = await Token.connect(Deployer).approve(
     await Vault.getAddress(),
-    parseEther("1000")
+    parseEther("10000")
   );
   await tx.wait();
 
   // deposit should work
-  tx = await Vault.connect(Deployer).deposit(parseEther("1000"));
+  tx = await Vault.connect(Deployer).deposit(parseEther("69"));
   console.log(tx);
 }
 
