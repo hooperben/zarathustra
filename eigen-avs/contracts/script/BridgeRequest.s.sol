@@ -24,7 +24,7 @@ interface IVault {
 contract DeployScript is Script {
     function run() external {
         // Load the private key from environment variable
-        uint256 privateKey = 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d;
+        uint256 privateKey = 0x1323;
 
         // Start broadcasting transactions to the RPC endpoint using the private key
         vm.startBroadcast(privateKey);
