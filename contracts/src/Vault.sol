@@ -150,7 +150,7 @@ contract Vault is Ownable, ReentrancyGuard, EIP712 {
         bytes memory AVSSignature,
         Structs.BridgeRequestData memory data
     ) public nonReentrant {
-        // Verify canonical signer's signaturegg
+        // Verify canonical signer's signature
         require(getSigner(data, canonicalSignature) == canonicalSigner, "Invalid canonical signature");
 
         address signer = getSigner(data, AVSSignature);
