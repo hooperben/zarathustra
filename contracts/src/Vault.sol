@@ -40,18 +40,13 @@ contract Vault is Ownable, ReentrancyGuard, EIP712 {
     uint256 public crankGasCost;
     address public canonicalSigner;
 
-    //    constructor(address _canonicalSigner, uint256 _crankGasCost) Ownable(msg.sender) EIP712("Zarathustra", "1") {
-    //        crankGasCost = _crankGasCost;
-    //        canonicalSigner = _canonicalSigner;
-    //        currentBridgeRequestId = 0;
-    //    }
     constructor() Ownable(msg.sender) EIP712("Zarathustra", "1") {
-        crankGasCost = 100_000;
-        bridgeFee = 100_000;
-        AVSReward = 50_000;
+        crankGasCost = 0;
+        AVSReward = 0;
+        bridgeFee = 0;
+
         canonicalSigner = msg.sender;
         currentBridgeRequestId = 0;
-        whitelistedSigners[0x53bce04C488e3da5295b9C1118a057b52cB18e57] = true;
     }
 
     function setCanonicalSigner(address _canonicalSigner) external onlyOwner {
@@ -141,7 +136,8 @@ contract Vault is Ownable, ReentrancyGuard, EIP712 {
             amountOut,
             destinationVault,
             destinationAddress,
-            transferIndex
+            transferIndex,
+            canonicalAttestation
         );
 
         currentBridgeRequestId++;
@@ -156,9 +152,13 @@ contract Vault is Ownable, ReentrancyGuard, EIP712 {
 
         emit AVSAttestation(attestation, _bridgeRequestId);
 
-        // TODO readd
-        // (bool sent, ) = msg.sender.call{value: AVSReward}("");
-        // require(sent, "Failed to send AVS reward");
+        uint256 payout = AVSReward;
+        if (address(this).balance < payout) {
+            payout = address(this).balance;
+        }
+
+        (bool sent, ) = msg.sender.call{value: payout}("");
+        require(sent, "Failed to send AVS reward");
     }
 
     function releaseFunds(

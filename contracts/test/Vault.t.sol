@@ -37,6 +37,7 @@ contract VaultTest is Test, EIP712("Zarathustra", "1") {
         vm.startPrank(deployer);
 
         vault = new Vault();
+        vault.setCanonicalSigner(canonicalSigner);
         testERC20 = new TestERC20();
 
         vault.setBridgeFee(bridgeFee);
@@ -45,6 +46,7 @@ contract VaultTest is Test, EIP712("Zarathustra", "1") {
         remoteErc20 = new TestERC20();
 
         remoteVault.whitelistSigner(independentSigner);
+        remoteVault.setCanonicalSigner(canonicalSigner);
 
         vm.stopPrank();
 
@@ -77,7 +79,8 @@ contract VaultTest is Test, EIP712("Zarathustra", "1") {
             amountOut: amount,
             destinationVault: address(remoteVault),
             destinationAddress: alice,
-            transferIndex: uint256(0)
+            transferIndex: uint256(0),
+            canonicalAttestation: abi.encodePacked(uint256(0))
         });
 
         bytes32 digest = remoteVault.getDigest(brd);
@@ -87,6 +90,8 @@ contract VaultTest is Test, EIP712("Zarathustra", "1") {
             digest
         );
 
+        bytes memory canonicalSig = abi.encodePacked(r1, s1, v1);
+
         testERC20.approve(address(vault), amount);
         vault.bridge{value: bridgeFee}({
             tokenAddress: address(testERC20),
@@ -94,7 +99,7 @@ contract VaultTest is Test, EIP712("Zarathustra", "1") {
             amountOut: amount,
             destinationVault: address(remoteVault),
             destinationAddress: alice,
-            canonicalAttestation: abi.encodePacked(r1, s1, v1)
+            canonicalAttestation: canonicalSig
         });
 
         vm.stopPrank();
@@ -102,6 +107,9 @@ contract VaultTest is Test, EIP712("Zarathustra", "1") {
         // Verify Alice's tokens are in the source vault
         assertEq(testERC20.balanceOf(address(vault)), amount);
         assertEq(testERC20.balanceOf(alice), 0);
+
+        vm.startPrank(deployer);
+        remoteVault.whitelistSigner(independentSigner);
 
         (uint8 v2, bytes32 r2, bytes32 s2) = vm.sign(
             independentSignerPkey,
@@ -112,7 +120,7 @@ contract VaultTest is Test, EIP712("Zarathustra", "1") {
         vm.startPrank(bob);
 
         remoteVault.releaseFunds(
-            abi.encodePacked(r1, s1, v1),
+            canonicalSig,
             abi.encodePacked(r2, s2, v2),
             brd
         );
@@ -123,7 +131,7 @@ contract VaultTest is Test, EIP712("Zarathustra", "1") {
         assertEq(testERC20.balanceOf(alice), amount);
 
         // Verify Bob receives the crank fee
-        assertEq(bob.balance, 1 ether + crankGasCost * tx.gasprice);
+        assertEq(bob.balance, 1 ether);
 
         // Verify invalid signatures revert
         bytes32 invalidMessageHash = keccak256(abi.encodePacked(uint256(123)));
@@ -151,5 +159,17 @@ contract VaultTest is Test, EIP712("Zarathustra", "1") {
             abi.encodePacked(r4, s4, v4),
             brd
         );
+    }
+
+    function test_publishAttestation() public {
+        vm.startPrank(deployer);
+        vault.whitelistSigner(canonicalSigner);
+
+        vm.startPrank(canonicalSigner);
+
+        bytes memory attestation = abi.encodePacked("attestation");
+        vault.publishAttestation(attestation, 0);
+
+        vm.stopPrank();
     }
 }

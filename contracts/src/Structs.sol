@@ -10,5 +10,6 @@ library Structs {
         address destinationVault;
         address destinationAddress;
         uint256 transferIndex;
+        bytes canonicalAttestation;
     }
 }
