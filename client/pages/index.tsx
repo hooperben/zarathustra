@@ -9,8 +9,19 @@ import SettingsButton from "@/ui/SettingsButton";
 import { CogDrawer } from "@/ui/CogDrawer";
 import { AlertDestructive } from "@/ui/alert";
 import {ConnectButton} from "@/ui/ConnectButton";
+import { ethers } from "ethers";
 
 const inter = Inter({ subsets: ["latin"] });
+
+interface BridgeRequestData {
+    user: string;
+    tokenAddress: string;
+    amountIn: ethers.BigNumberish;
+    amountOut: ethers.BigNumberish;
+    destinationVault: string;
+    destinationAddress: string;
+    transferIndex: ethers.BigNumberish;
+}
 
 declare global {
   interface Window {
@@ -50,29 +61,84 @@ export default function Home() {
   };
 
   const approveERC20Transfer = async () => {
-    // Get the balance in the input field
-    // Get the token address for the input token the user has selected
-    // Get the RCP endpoint from metamask
+      const erc20Abi = ['function approve(address spender, uint256 amount) external returns (bool)'];
+      const erc20Interface = new ethers.Interface(erc20Abi);
+
+      const calldata = erc20Interface.encodeFunctionData('approve', ["0xed4712592F95974fb0346730429C512f20c01348", textBoxValue]);
+      console.log('Calldata:', calldata);
+
+      const thHash = await window.ethereum.request({
+          method: "eth_sendTransaction",
+          params: [
+              {
+                  from: walletAddress,
+                  to: "0x5a16A4F940Bb055357f6b378d7E01341a044450C",
+                  value: ethers.toBeHex(0),
+                  data: calldata,
+              },
+          ],
+      });
+      console.log('Transaction Hash:', thHash);
+  }
+
+  const getDigest = async () => {
+    const abi = [
+        "function getDigest((address,address,uint256,uint256,address,address,uint256)) view returns (bytes32)"
+    ];
+    const contractAddress = "0xed4712592F95974fb0346730429C512f20c01348";
+
+    const providerUrl = "https://purple-divine-morning.ethereum-holesky.quiknode.pro/145f60a65b09b33285c3bfc8efda5335394ea282";
+
+    const provider = new ethers.JsonRpcProvider(providerUrl);
+    const contract = new ethers.Contract(contractAddress, abi, provider);
+
+    const data = [
+        ethers.getAddress("0x485B7B8ECA681221d68250a7Ed88b1d4c9152149"),
+        ethers.getAddress("0xE2101b383FDdca24813DB1Bf0E68129bE402e8e0"),
+        1000000000000000000n,
+        1000000000000000000n,
+        ethers.getAddress("0xd7085121bcba7559ce6216E88A785209F4d66971"),
+        ethers.getAddress("0x485B7B8ECA681221d68250a7Ed88b1d4c9152149"),  // Assume it's the same as the source wallet
+        0n  // We will need to get this from the contract too (source chain contract call)
+      ];
+
+    try {
+        const digest = await contract.getFunction("getDigest")(data);
+        console.log("Digest:", digest);
+        return digest;
+    } catch (error) {
+        console.error("Error calling getDigest:", error);
+    }
   }
 
   const handleSubmit = async () => {
-    // Approve ERC20 Transfer on the input chain
-    // Get the signature from the backend
-    // Call the input chain with the signature + call-data
+      await approveERC20Transfer();
 
-    const message = "Message to sign";
+      const digest = await getDigest();
+      if (typeof digest !== "string") {
+          throw new Error("Error getting digest");
+      }
 
-    try {
-      const address = walletAddress;
-      const signature = await window.ethereum.request({
-        method: "personal_sign",
-        params: [message, address],
-      });
-  
+      const signer = new ethers.Wallet("0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d");
+      const signature = await signer.signMessage(digest);
       console.log("Signature:", signature);
-    } catch (error) {
-      console.error("Error signing message:", error);
-    }
+
+      // Call the input chain with the signature + call-data
+      try {
+          const s = await window.ethereum.request({
+              method: "eth_sendTransaction",
+              params: [
+                  {
+                      from: walletAddress,
+                      to: "0xed4712592F95974fb0346730429C512f20c01348",
+                      value: ethers.parseEther("1"),
+                  },
+              ]
+          });
+          console.log(s);
+      } catch (error) {
+          console.error("Error sending transaction:", error);
+      }
   };
 
   return (
@@ -113,7 +179,7 @@ export default function Home() {
         <div className="flex my-12">
           <>
             {walletConnected ? (
-              <SubmitButton onClick={handleSignMessage} />
+              <SubmitButton onClick={handleSubmit} />
             ) : (
               <ConnectButton onClick={handleConnectWallet} />
             )}
