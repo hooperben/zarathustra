@@ -24,7 +24,10 @@ contract Vault is Ownable, ReentrancyGuard, EIP712 {
         bytes canonicalAttestation
     );
 
-    event AVSAttestation(bytes32 indexed attestation, uint256 indexed bridgeRequestId);
+    event AVSAttestation(
+        bytes indexed attestation,
+        uint256 indexed bridgeRequestId
+    );
 
     mapping(address => uint256) private nextUserTransferIndexes;
     mapping(address => bool) private whitelistedSigners;
@@ -37,11 +40,11 @@ contract Vault is Ownable, ReentrancyGuard, EIP712 {
     uint256 public crankGasCost;
     address public canonicalSigner;
 
-//    constructor(address _canonicalSigner, uint256 _crankGasCost) Ownable(msg.sender) EIP712("Zarathustra", "1") {
-//        crankGasCost = _crankGasCost;
-//        canonicalSigner = _canonicalSigner;
-//        currentBridgeRequestId = 0;
-//    }
+    //    constructor(address _canonicalSigner, uint256 _crankGasCost) Ownable(msg.sender) EIP712("Zarathustra", "1") {
+    //        crankGasCost = _crankGasCost;
+    //        canonicalSigner = _canonicalSigner;
+    //        currentBridgeRequestId = 0;
+    //    }
     constructor() Ownable(msg.sender) EIP712("Zarathustra", "1") {
         crankGasCost = 100_000;
         bridgeFee = 100_000;
@@ -67,17 +70,26 @@ contract Vault is Ownable, ReentrancyGuard, EIP712 {
         crankGasCost = _crankGasCost;
     }
 
-    function getDigest(Structs.BridgeRequestData memory data) public view returns (bytes32) {
-        return _hashTypedDataV4(keccak256(abi.encode(
-            keccak256("BridgeRequestData(address user,address tokenAddress,uint256 amountIn,uint256 amountOut,address destinationVault,address destinationAddress,uint256 transferIndex)"),
-            data.user,
-            data.tokenAddress,
-            data.amountIn,
-            data.amountOut,
-            data.destinationVault,
-            data.destinationAddress,
-            data.transferIndex
-        )));
+    function getDigest(
+        Structs.BridgeRequestData memory data
+    ) public view returns (bytes32) {
+        return
+            _hashTypedDataV4(
+                keccak256(
+                    abi.encode(
+                        keccak256(
+                            "BridgeRequestData(address user,address tokenAddress,uint256 amountIn,uint256 amountOut,address destinationVault,address destinationAddress,uint256 transferIndex)"
+                        ),
+                        data.user,
+                        data.tokenAddress,
+                        data.amountIn,
+                        data.amountOut,
+                        data.destinationVault,
+                        data.destinationAddress,
+                        data.transferIndex
+                    )
+                )
+            );
     }
 
     function getSigner(
@@ -136,13 +148,17 @@ contract Vault is Ownable, ReentrancyGuard, EIP712 {
         nextUserTransferIndexes[msg.sender]++;
     }
 
-    function publishAttestation(bytes32 attestation, uint256 _bridgeRequestId) public nonReentrant {
+    function publishAttestation(
+        bytes memory attestation,
+        uint256 _bridgeRequestId
+    ) public nonReentrant {
         require(whitelistedSigners[msg.sender], "Invalid AVS signer");
 
         emit AVSAttestation(attestation, _bridgeRequestId);
 
-        (bool sent, ) = msg.sender.call{value: AVSReward}("");
-        require(sent, "Failed to send AVS reward");
+        // TODO readd
+        // (bool sent, ) = msg.sender.call{value: AVSReward}("");
+        // require(sent, "Failed to send AVS reward");
     }
 
     function releaseFunds(
@@ -151,18 +167,28 @@ contract Vault is Ownable, ReentrancyGuard, EIP712 {
         Structs.BridgeRequestData memory data
     ) public nonReentrant {
         // Verify canonical signer's signature
-        require(getSigner(data, canonicalSignature) == canonicalSigner, "Invalid canonical signature");
+        require(
+            getSigner(data, canonicalSignature) == canonicalSigner,
+            "Invalid canonical signature"
+        );
 
         address signer = getSigner(data, AVSSignature);
         require(whitelistedSigners[signer], "Invalid signature");
-        require(data.destinationVault == address(this), "Invalid destination vault");
+        require(
+            data.destinationVault == address(this),
+            "Invalid destination vault"
+        );
 
         IERC20(data.tokenAddress).approve(address(this), data.amountOut);
-        IERC20(data.tokenAddress).transfer(data.destinationAddress, data.amountOut);
+        IERC20(data.tokenAddress).transfer(
+            data.destinationAddress,
+            data.amountOut
+        );
 
         uint256 payout = crankGasCost * tx.gasprice;
         if (address(this).balance < payout) {
-            payout = address(this).balance; }
+            payout = address(this).balance;
+        }
 
         if (payout > 0) {
             (bool sent, ) = msg.sender.call{value: payout}("");
@@ -180,12 +206,12 @@ contract Vault is Ownable, ReentrancyGuard, EIP712 {
 
     receive() external payable {}
 
-//    // Ideally we'd use this but the stake registry isn't deployed on all the chains yet!
-//    function operatorHasMinimumWeight(
-//        address operator
-//    ) public view returns (bool) {
-//        return
-//            ECDSAStakeRegistry(stakeRegistry).getOperatorWeight(operator) >=
-//            ECDSAStakeRegistry(stakeRegistry).minimumWeight();
-//    }
+    //    // Ideally we'd use this but the stake registry isn't deployed on all the chains yet!
+    //    function operatorHasMinimumWeight(
+    //        address operator
+    //    ) public view returns (bool) {
+    //        return
+    //            ECDSAStakeRegistry(stakeRegistry).getOperatorWeight(operator) >=
+    //            ECDSAStakeRegistry(stakeRegistry).minimumWeight();
+    //    }
 }

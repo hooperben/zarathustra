@@ -1,5 +1,6 @@
 import ethers, {
   Contract,
+  ContractEventPayload,
   InfuraProvider,
   JsonRpcProvider,
   Wallet,
@@ -10,29 +11,65 @@ import { vaultAbi } from "../constants/vaultAbi";
 
 dotenv.config();
 
-const optimsimSepoliaRPC = `wss://optimism-sepolia.infura.io/ws/v3/${process.env.INFURA_API_KEY}`;
-const holeskyRPC = `wss://holesky.infura.io/ws/v3/${process.env.INFURA_API_KEY}`;
+const optimsimSepoliaWS = `wss://optimism-sepolia.infura.io/ws/v3/${process.env.INFURA_API_KEY}`;
+const holeskyWS = `wss://holesky.infura.io/ws/v3/${process.env.INFURA_API_KEY}`;
 
-const optimismWallet = new Wallet(
+const optimismWSWallet = new Wallet(
   process.env.AVS_PRIVATE_KEY!,
-  new WebSocketProvider(optimsimSepoliaRPC)
+  new WebSocketProvider(optimsimSepoliaWS)
 );
-const holeskyWallet = new Wallet(
+const holeskyWSWallet = new Wallet(
   process.env.AVS_PRIVATE_KEY!,
-  new WebSocketProvider(holeskyRPC)
+  new WebSocketProvider(holeskyWS)
+);
+
+console.log("holeskyWS: ", holeskyWS);
+
+const holeskyVaultAddress = "0xed4712592F95974fb0346730429C512f20c01348";
+// const holeskyRPC = `https://holesky.infura.io/v3/${process.env.INFURA_API_KEY}`;
+
+const holeskyRPC = "https://ethereum-holesky-rpc.publicnode.com";
+
+const holeskyRPCWallet = new Wallet(
+  process.env.AVS_PRIVATE_KEY!,
+  new JsonRpcProvider(holeskyRPC)
+);
+
+console.log("holeskyRPC: ", holeskyRPCWallet.address);
+
+const writeHoleskyVault = new Contract(
+  holeskyVaultAddress,
+  vaultAbi,
+  holeskyRPCWallet
+);
+
+const optimismRPC = `https://optimism-sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`;
+
+const optimismRPCWallet = new Wallet(
+  process.env.AVS_PRIVATE_KEY!,
+  new JsonRpcProvider(optimismRPC)
 );
 
 const optimismSepoliaVaultAddress =
-  "0xe31B22f54fcD42A5b15f4Bfec123E3ED855fC739";
-const holeskyVaultAddress = "0xefd4Ce5758DF4727b5c499e2789dC7aF8aD30D19";
+  "0x5e20B22F03E84572424317107a16f7251f870049";
 
 const optimismVault = new Contract(
   optimismSepoliaVaultAddress,
   vaultAbi,
-  optimismWallet
+  optimismWSWallet
 );
 
-const holeskyVault = new Contract(holeskyVaultAddress, vaultAbi, holeskyWallet);
+const holeskyVault = new Contract(
+  holeskyVaultAddress,
+  vaultAbi,
+  holeskyWSWallet
+);
+
+const writeOptimismVault = new Contract(
+  optimismSepoliaVaultAddress,
+  vaultAbi,
+  optimismRPCWallet
+);
 
 /**
  * to run:  yarn ts-node script/runner.ts
@@ -42,59 +79,88 @@ const main = async () => {
     console.log("HOLESKY: we got a bridge request: ");
     console.log("sender: ", sender);
     console.log("amount: ", amount);
+    console.log("event: ", event);
 
-    let formattedArgs: any = {};
+    const contractEventPayload = event[
+      event.length - 1
+    ] as unknown as ContractEventPayload;
 
-    event.map((e) => {
-      if (e.args) {
-        const args = Object.keys(e.args).map((key) => {
-          return `"${key}": "${e.args[key]}"`;
-        });
-
-        formattedArgs = JSON.parse(`{${args.join(",")}}`);
-      }
-    });
-
-    const {
+    const [
       user,
       tokenAddress,
+      currentBridgeRequestId,
       amountIn,
       amountOut,
       destinationVault,
       destinationAddress,
       transferIndex,
-    } = formattedArgs;
+      canonicalAttestation,
+    ] = contractEventPayload.args;
+
+    console.log(currentBridgeRequestId);
+    console.log(canonicalAttestation);
+
+    await writeHoleskyVault.publishAttestation(
+      canonicalAttestation,
+      currentBridgeRequestId
+    );
   });
 
-  optimismVault.on("BridgeRequest", async (sender, amount, ...event) => {
-    console.log("BridgeRequest: we got a bridge request: ");
-    console.log("sender: ", sender);
-    console.log("amount: ", amount);
+  // holeskyVault.on("AVSAttestation", async (...event) => {
+  //   const contractEventPayload = event[
+  //     event.length - 1
+  //   ] as unknown as ContractEventPayload;
 
-    let formattedArgs: any = {};
+  // });
 
-    event.map((e) => {
-      if (e.args) {
-        const args = Object.keys(e.args).map((key) => {
-          return `"${key}": "${e.args[key]}"`;
-        });
+  // optimismVault.on("BridgeRequest", async (sender, amount, ...event) => {
+  //   console.log("BridgeRequest: we got a bridge request: ");
+  //   console.log("sender: ", sender);
+  //   console.log("amount: ", amount);
 
-        formattedArgs = JSON.parse(`{${args.join(",")}}`);
-      }
-    });
+  //   let formattedArgs: any = {};
 
-    const {
-      user,
-      tokenAddress,
-      amountIn,
-      amountOut,
-      destinationVault,
-      destinationAddress,
-      transferIndex,
-    } = formattedArgs;
-  });
+  //   event.map((e) => {
+  //     if (e.args) {
+  //       const args = Object.keys(e.args).map((key) => {
+  //         return `"${key}": "${e.args[key]}"`;
+  //       });
+
+  //       formattedArgs = JSON.parse(`{${args.join(",")}}`);
+  //     }
+  //   });
+
+  //   const {
+  //     user,
+  //     tokenAddress,
+  //     amountIn,
+  //     amountOut,
+  //     destinationVault,
+  //     destinationAddress,
+  //     transferIndex,
+  //     canonicalAttestation,
+  //   } = formattedArgs;
+
+  //   console.log(
+  //     user,
+  //     tokenAddress,
+  //     amountIn,
+  //     amountOut,
+  //     destinationVault,
+  //     destinationAddress,
+  //     transferIndex,
+  //     canonicalAttestation
+  //   );
+  // });
 
   console.log("we are in business");
+
+  const canonicalAttestation = await writeHoleskyVault.bridgeRequests(4);
+
+  console.log("canonicalAttestation: ", canonicalAttestation);
+  const avsSignature = await writeHoleskyVault.bridgeRequests(4);
+
+  console.log("avsSignature: ", avsSignature);
 };
 
 main().catch((error) => {
