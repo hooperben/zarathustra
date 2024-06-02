@@ -1,10 +1,11 @@
-import ethers, {
+import {
   Contract,
   ContractEventPayload,
-  InfuraProvider,
   JsonRpcProvider,
+  SigningKey,
   Wallet,
   WebSocketProvider,
+  verifyTypedData,
 } from "ethers";
 import * as dotenv from "dotenv";
 import { vaultAbi } from "../constants/vaultAbi";
@@ -22,7 +23,6 @@ const holeskyWSWallet = new Wallet(
   process.env.AVS_PRIVATE_KEY!,
   new WebSocketProvider(holeskyWS)
 );
-
 console.log("holeskyWS: ", holeskyWS);
 
 const holeskyVaultAddress = "0xE79285994020f0C8177E795430BF69A7C193FaD3";
@@ -125,12 +125,57 @@ const main = async () => {
 
     console.log("digest", digest);
 
-    const avsAttestation = await optimismRPCWallet.signMessage(digest);
+    const domain = {
+      name: "Zarathustra",
+      version: "1",
+      chainId: 17000,
+      verifyingContract: "0xE79285994020f0C8177E795430BF69A7C193FaD3",
+    };
 
-    console.log("avs attestation: ", avsAttestation);
+    const types = {
+      BridgeRequestData: [
+        { name: "user", type: "address" },
+        { name: "tokenAddress", type: "address" },
+        { name: "amountIn", type: "uint256" },
+        { name: "amountOut", type: "uint256" },
+        { name: "destinationVault", type: "address" },
+        { name: "destinationAddress", type: "address" },
+        { name: "transferIndex", type: "uint256" },
+      ],
+    };
+
+    // Example struct data
+    const bridgeRequestData = {
+      user,
+      tokenAddress,
+      amountIn,
+      amountOut,
+      destinationVault,
+      destinationAddress,
+      transferIndex,
+    };
+    const signer = new Wallet(process.env.AVS_PRIVATE_KEY!);
+
+    const signature = await signer.signTypedData(
+      domain,
+      types,
+      bridgeRequestData
+    );
+
+    // Create the canonical signature
+    console.log("Signature:", signature);
+
+    const expectedSignerAddress = await signer.getAddress();
+    const recoveredAddress = verifyTypedData(
+      domain,
+      types,
+      bridgeRequestData,
+      signature
+    );
+    console.log("Signature valid:", recoveredAddress === expectedSignerAddress);
 
     await writeHoleskyVault.publishAttestation(
-      avsAttestation, // canonicalAttestation,
+      signature, // canonicalAttestation,
       currentBridgeRequestId
     );
   });

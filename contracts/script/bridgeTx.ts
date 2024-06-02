@@ -45,6 +45,12 @@ const writeHoleskyToken = new Contract(
   holeskyRPCWallet
 );
 
+const writeOPTestToken = new Contract(
+  "0xcb158056b5D4DC26e8161423A60b9e4dA2c9f630",
+  erc20Abi,
+  optimismRPCWallet
+);
+
 const optimismVaultAddress = "0x5e20B22F03E84572424317107a16f7251f870049";
 
 const optimismVault = new Contract(
@@ -65,25 +71,25 @@ const main = async () => {
   const destinationVault = "0x5e20B22F03E84572424317107a16f7251f870049";
   const destinationAddress = "0x5f0974C77a9dcc3a15e5F019B837708f0489394D";
 
-  const canonicalAttestation = await optimismVault.getDigest({
-    user: destinationAddress,
-    tokenAddress,
-    amountIn,
-    amountOut,
-    destinationVault,
-    destinationAddress,
-    transferIndex: 5,
-  });
+  // const canonicalAttestation = await optimismVault.getDigest({
+  //   user: destinationAddress,
+  //   tokenAddress,
+  //   amountIn,
+  //   amountOut,
+  //   destinationVault,
+  //   destinationAddress,
+  //   transferIndex: 5,
+  // });
 
-  console.log("canonicalAttestation: ", canonicalAttestation);
+  // console.log("canonicalAttestation: ", canonicalAttestation);
 
-  const balance = await writeHoleskyToken.balanceOf(holeskyRPCWallet.address);
-  const approval = await writeHoleskyToken.allowance(
-    holeskyRPCWallet.address,
-    holeskyVaultAddress
-  );
-  console.log(balance);
-  console.log(approval);
+  // const balance = await writeHoleskyToken.balanceOf(holeskyRPCWallet.address);
+  // const approval = await writeHoleskyToken.allowance(
+  //   holeskyRPCWallet.address,
+  //   holeskyVaultAddress
+  // );
+  // console.log(balance);
+  // console.log(approval);
   // need to approve
   // let tx = await writeHoleskyToken.approve(
   //   holeskyVaultAddress,
@@ -96,20 +102,10 @@ const main = async () => {
 
   console.log("minted");
 
-  let tx = await writeHoleskyVault.bridge(
-    tokenAddress,
-    amountIn,
-    amountOut,
-    destinationVault,
-    destinationAddress,
-    canonicalAttestation,
-    {
-      value: parseUnits("1", 5),
-    }
+  await writeOPTestToken.mint(
+    "0x38a406C320Ab23f18D3a10E44f37084d29f4dD96",
+    parseEther("1000000")
   );
-  await tx.wait();
-
-  console.log(tx);
 };
 
 main().catch((error) => {
