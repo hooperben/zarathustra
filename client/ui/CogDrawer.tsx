@@ -24,6 +24,7 @@ import Image from "next/image"
 export function CogDrawer({ walletConnected, setWalletError, setWalletAddress }: { walletConnected: boolean, setWalletError: any, setWalletAddress: React.Dispatch<React.SetStateAction<string>> }) {
   const [open, setOpen] = React.useState(false);
   const isDesktop = useMediaQuery("(min-width: 768px)");
+  
 
   React.useEffect(() => {
     setOpen(!walletConnected);
