@@ -29,8 +29,8 @@ contract Vault is Ownable, ReentrancyGuard, EIP712 {
         uint256 indexed bridgeRequestId
     );
 
-    mapping(address => uint256) private nextUserTransferIndexes;
-    mapping(address => bool) private whitelistedSigners;
+    mapping(address => uint256) public nextUserTransferIndexes;
+    mapping(address => bool) public whitelistedSigners;
 
     uint256 public currentBridgeRequestId;
     mapping(uint256 => Structs.BridgeRequestData) public bridgeRequests;

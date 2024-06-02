@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "py"
+version = "0.1.0"
+description = ""
+authors = ["idatsy <stefan@ranvier.co.uk>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+websockets = "^12.0"
+requests = "^2.32.3"
+web3 = "^6.19.0"
+setuptools = "^70.0.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
