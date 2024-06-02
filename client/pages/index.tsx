@@ -8,6 +8,7 @@ import { SubmitButton } from "@/ui/SubmitButton";
 import SettingsButton from "@/ui/SettingsButton";
 import { CogDrawer } from "@/ui/CogDrawer";
 import { AlertDestructive } from "@/ui/alert";
+import {ConnectButton} from "@/ui/ConnectButton";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -33,16 +34,35 @@ export default function Home() {
     setSelectedToken({ src, alt });
   };
 
-  const handleConnectWallet = () => {
-    setWalletConnected(true);
+  const handleConnectWallet = async () => {
+    try {
+      const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+      if (accounts.length > 0) {
+        setWalletAddress(accounts[0]);
+        console.log(accounts[0]);
+      }
+    } catch (error) {
+        console.error("Error connecting wallet:", error);
+        setWalletError(true);
+        return;
+    }
+      setWalletConnected(true);
   };
 
-  const handleSignMessage = async () => {
+  const approveERC20Transfer = async () => {
+    // Get the balance in the input field
+    // Get the token address for the input token the user has selected
+    // Get the RCP endpoint from metamask
+  }
+
+  const handleSubmit = async () => {
+    // Approve ERC20 Transfer on the input chain
+    // Get the signature from the backend
+    // Call the input chain with the signature + call-data
 
     const message = "Message to sign";
 
     try {
-  
       const address = walletAddress;
       const signature = await window.ethereum.request({
         method: "personal_sign",
@@ -54,25 +74,11 @@ export default function Home() {
       console.error("Error signing message:", error);
     }
   };
-  
-
-  // Am I hallucinating or is there a shwarma in front of me??? - Thomas
-  // I’m not sure my cog isn’t working but it might be because of my permanent schwarma - Reese
-  //Why is the schwarma stuck? It’s not there. - Reese
 
   return (
     <main className={`flex min-h-screen flex-col items-center ${inter.className}`} style={{ background: 'linear-gradient(to right, rgb(49, 229, 232), rgb(46, 209, 132))' }}>
 
       <div className="flex flex-col items-center min-w-96 min-h-80 m-52 rounded-3xl shadow-xl" style={{ backgroundColor: 'rgba(200, 200, 200, 0.35)', border: '0.5px solid white', paddingLeft: '20px', paddingRight: '20px'}}>
-        
-      <div className="flex flex-row ml-80 mt-3">
-        <CogDrawer
-          walletConnected={walletConnected}
-            walletError={walletError}
-            setWalletAddress={setWalletAddress}
-            setWalletError={setWalletError}
-          />
-      </div>
 
       <div style={{ borderRadius: "10px", padding: "7px", color: 'rgba(25, 30, 35, 1)', backgroundColor: 'rgba(255, 255, 255, 1)', width: '500px', transition: 'background-color 0.3s ease', position: 'absolute', top: '4px', left: '4px' }} className="text-white text-sm">
         Wallet Address: {walletAddress}
@@ -105,7 +111,14 @@ export default function Home() {
         </div>
 
         <div className="flex my-12">
-          <SubmitButton onClick={handleSignMessage}/>
+          <>
+            {walletConnected ? (
+              <SubmitButton onClick={handleSignMessage} />
+            ) : (
+              <ConnectButton onClick={handleConnectWallet} />
+            )}
+          </>
+
         </div>
       </div>
 
