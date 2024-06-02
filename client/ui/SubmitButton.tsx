@@ -1,17 +1,12 @@
-import { Button } from "@/components/ui/button"
-
-
 export const SubmitButton = ({ onClick }: { onClick: () => void }) => {
   return (
     <div>
-      <Button
+      <button
         onClick={onClick}
-        style={{ color: 'rgba(255, 255, 255, 1)', backgroundColor: 'rgba(25, 30, 35, 1)', width: '200px', transition: 'background-color 0.3s ease'}}
-        hoverStyle={{ backgroundColor: 'rgba(25, 30, 35, 0.5)' }}
+        className="mt-4 bg-black text-white font-bold py-2 px-4 rounded transition transform hover:bg-gray-700 hover:scale-105 active:bg-gray-600 active:scale-95"
       >
         Submit
-      </Button>
+      </button>
     </div>
   );
 };
-
