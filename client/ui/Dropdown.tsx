@@ -10,9 +10,9 @@ import {
 
 import Image from "next/image";
 
-export const Dropdown = () => {
+export const Dropdown = ({ defaultEth }: { defaultEth?: boolean }) => {
   const [selectedImage, setSelectedImage] = useState({
-    src: "",
+    src: defaultEth ? "Ethereum.svg" : "Optimism.svg",
     alt: "Chain",
   });
 

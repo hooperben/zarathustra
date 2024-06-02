@@ -154,7 +154,7 @@ export default function Home() {
     data: approvalHash,
     isPending: awaitingApproval,
     status: approvalStatus,
-    writeContractAsync,
+    writeContract,
   } = useWriteContract();
 
   const {
@@ -166,22 +166,38 @@ export default function Home() {
 
   const [approvalError, setApprovalError] = useState<string>();
 
-  const handleSubmit = async () => {
+  const [approvalComplete, setApprovalComplete] = useState(false);
+
+  const handleApproval = async () => {
     setApprovalError(undefined);
     setLoading(true);
 
     try {
-      await writeContractAsync({
-        address: HOLESKY_ERC20_CONTRACT,
-        abi: erc20Abi,
-        functionName: "approve",
-        args: [HOLESKY_VAULT_CONTRACT, parseEther(textBoxValue.toString())],
-      });
+      writeContract(
+        {
+          address: HOLESKY_ERC20_CONTRACT,
+          abi: erc20Abi,
+          functionName: "approve",
+          args: [HOLESKY_VAULT_CONTRACT, parseEther(textBoxValue.toString())],
+        },
+        {
+          onSuccess: () => {
+            setLoading(false);
+            setApprovalComplete(true);
+          },
+          onSettled: () => {
+            console.log("ran settled");
+          },
+          onError: () => setApprovalError("Something went wrong :("),
+        }
+      );
     } catch (err: any) {
       console.log(err);
       setApprovalError("Something went wrong :(");
     }
+  };
 
+  const handleSendTokens = async () => {
     const digest = await getDigest();
     if (typeof digest !== "string") {
       setApprovalError("Something went wrong :(");
@@ -196,24 +212,32 @@ export default function Home() {
 
     // Call the input chain with the signature + call-data
     try {
-      await writeBridgeContractAsync({
-        address: HOLESKY_VAULT_CONTRACT,
-        abi: vaultAbi,
-        functionName: "bridge",
-        args: [
-          HOLESKY_ERC20_CONTRACT,
-          BigInt(textBoxValue),
-          BigInt(textBoxValue),
-          VAULT_OP_SEPOLIA_CONTRACT,
-          address,
-          signature,
-        ],
-      });
+      await writeBridgeContractAsync(
+        {
+          address: HOLESKY_VAULT_CONTRACT,
+          abi: vaultAbi,
+          functionName: "bridge",
+          args: [
+            HOLESKY_ERC20_CONTRACT,
+            BigInt(textBoxValue),
+            BigInt(textBoxValue),
+            VAULT_OP_SEPOLIA_CONTRACT,
+            address,
+            signature,
+          ],
+        },
+        {
+          onSettled: () => setLoading(false),
+          onError: () => {
+            setLoading(false);
+            setApprovalError("Something went wrong :(");
+          },
+        }
+      );
     } catch (err: any) {
       console.log(err);
       setLoading(false);
     }
-    setLoading(false);
   };
 
   function ConnectWallet() {
@@ -263,7 +287,7 @@ export default function Home() {
           <>
             <div className="flex flex-row my-5 px-5 py-1 items-center space-x-3 bg-white rounded-xl shadow-lg">
               <div className="flex">
-                <Dropdown />
+                <Dropdown defaultEth={true} />
               </div>
               <div className="flex">
                 <TextBox value={textBoxValue} onChange={handleTextBoxChange} />
@@ -278,7 +302,7 @@ export default function Home() {
 
             <div className="flex flex-row px-5 py-1 items-center space-x-3 bg-white rounded-xl shadow-lg">
               <div className="flex">
-                <Dropdown />
+                <Dropdown defaultEth={false} />
               </div>
               <div className="flex">
                 <TextBox value={textBoxValue} onChange={handleTextBoxChange} />
@@ -299,7 +323,10 @@ export default function Home() {
           </div>
         )}
 
-        {(loading || awaitingBridge) && (
+        {(loading ||
+          awaitingBridge ||
+          bridgeStatus === "pending" ||
+          approvalStatus === "pending") && (
           <svg
             width="100"
             height="100"
@@ -332,9 +359,24 @@ export default function Home() {
 
         {approvalError && <h4 className="mt-4">{approvalError}</h4>}
 
-        {address && !awaitingApproval && textBoxValue > 0 && !loading && (
-          <SubmitButton onClick={handleSubmit} />
-        )}
+        {textBoxValue > 0 &&
+          !loading &&
+          (approvalComplete ? (
+            <div className="text-center">
+              <p className="mt-4">
+                Approval complete! Now send your tokens to the vault.
+              </p>
+              <SubmitButton text="Send my tokens!" onClick={handleSendTokens} />
+            </div>
+          ) : (
+            <div className="text-center">
+              <p className="mt-4">
+                You&apos;ll need to approve your tokens to be moved by the
+                bridging contract{" "}
+              </p>
+              <SubmitButton text="Approve my tokens" onClick={handleApproval} />
+            </div>
+          ))}
 
         <ConnectWallet />
       </div>

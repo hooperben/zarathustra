@@ -36,16 +36,10 @@ export const Tokendropdown = ({ selectedToken, onSelect }) => {
               userSelect: "none",
             }}
           >
-            <Image
-              src={selectedToken.src}
-              alt={selectedToken.alt}
-              width={30}
-              height={30}
-              style={{ outline: "none", border: "none" }}
-            />
+            {"TEST"}
           </div>
         ) : (
-          "Token"
+          "TEST"
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent
@@ -61,13 +55,13 @@ export const Tokendropdown = ({ selectedToken, onSelect }) => {
           onSelect={() => handleSelect("Ethereum.svg", "Ethereum")}
         >
           <div style={{ paddingRight: "7px" }}>
-            <Image
+            {/* <Image
               src="Ethereum.svg"
               alt={selectedToken.alt}
               className="dark:invert"
               width={20}
               height={20}
-            />
+            /> */}
           </div>
           TEST
         </DropdownMenuItem>
