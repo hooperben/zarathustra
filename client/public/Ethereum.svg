@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="1080" height="1080" viewBox="0 0 1080 1080" xml:space="preserve">
+<desc>Created with Fabric.js 5.2.4</desc>
+<defs>
+</defs>
+<rect x="0" y="0" width="100%" height="100%" fill="transparent"></rect>
+<g transform="matrix(1 0 0 1 540 540)" id="25467346-23ae-4c96-9f8e-c34447ccb071"  >
+<rect style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; fill: rgb(255,255,255); fill-rule: nonzero; opacity: 1; visibility: hidden;" vector-effect="non-scaling-stroke"  x="-540" y="-540" rx="0" ry="0" width="1080" height="1080" />
+</g>
+<g transform="matrix(1 0 0 1 540 540)" id="eb35b22f-d387-40b3-a6bb-2c9f1d5cc4f6"  >
+</g>
+<g transform="matrix(1.42 0 0 1.28 540 540)"  >
+<g style="" vector-effect="non-scaling-stroke"   >
+		<g transform="matrix(1 0 0 1 0 0)" id="Oval"  >
+<circle style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; fill: rgb(98,126,234); fill-rule: nonzero; opacity: 1;" vector-effect="non-scaling-stroke"  cx="0" cy="0" r="365.8" />
+</g>
+		<g transform="matrix(1 0 0 1 97.1 -134.7)" id="Path"  >
+<polygon style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; fill: rgb(255,255,255); fill-opacity: 0.6; fill-rule: nonzero; opacity: 1;" vector-effect="non-scaling-stroke"  points="-85.7,-139.7 -85.7,63.1 85.7,139.7 " />
+</g>
+		<g transform="matrix(1 0 0 1 -74.3 -134.7)" id="Path_1_"  >
+<polygon style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; fill: rgb(255,255,255); fill-rule: nonzero; opacity: 1;" vector-effect="non-scaling-stroke"  points="85.7,-139.7 -85.7,139.7 85.7,63.1 " />
+</g>
+		<g transform="matrix(1 0 0 1 97.15 155.55)" id="Path_2_"  >
+<polygon style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; fill: rgb(255,255,255); fill-opacity: 0.6; fill-rule: nonzero; opacity: 1;" vector-effect="non-scaling-stroke"  points="-85.75,-19.15 -85.75,118.65 85.75,-118.65 " />
+</g>
+		<g transform="matrix(1 0 0 1 -74.3 155.55)" id="Path_3_"  >
+<polygon style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; fill: rgb(255,255,255); fill-rule: nonzero; opacity: 1;" vector-effect="non-scaling-stroke"  points="85.7,118.65 85.7,-19.15 -85.7,-118.65 " />
+</g>
+		<g transform="matrix(1 0 0 1 97.1 16.45)" id="Path_4_"  >
+<polygon style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; fill: rgb(255,255,255); fill-opacity: 0.2; fill-rule: nonzero; opacity: 1;" vector-effect="non-scaling-stroke"  points="-85.7,88.05 85.7,-11.45 -85.7,-88.05 " />
+</g>
+		<g transform="matrix(1 0 0 1 -74.3 16.45)" id="Path_5_"  >
+<polygon style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; fill: rgb(255,255,255); fill-opacity: 0.6; fill-rule: nonzero; opacity: 1;" vector-effect="non-scaling-stroke"  points="-85.7,-11.45 85.7,88.05 85.7,-88.05 " />
+</g>
+</g>
+</g>
+</svg>
