@@ -3,6 +3,13 @@ export const vaultAbi = [
   { type: "receive", stateMutability: "payable" },
   {
     type: "function",
+    name: "AVSReward",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
     name: "bridge",
     inputs: [
       { name: "tokenAddress", type: "address", internalType: "address" },
@@ -34,6 +41,7 @@ export const vaultAbi = [
       { name: "destinationVault", type: "address", internalType: "address" },
       { name: "destinationAddress", type: "address", internalType: "address" },
       { name: "transferIndex", type: "uint256", internalType: "uint256" },
+      { name: "canonicalAttestation", type: "bytes", internalType: "bytes" },
     ],
     stateMutability: "view",
   },
@@ -97,6 +105,11 @@ export const vaultAbi = [
             internalType: "address",
           },
           { name: "transferIndex", type: "uint256", internalType: "uint256" },
+          {
+            name: "canonicalAttestation",
+            type: "bytes",
+            internalType: "bytes",
+          },
         ],
       },
     ],
@@ -127,12 +140,24 @@ export const vaultAbi = [
             internalType: "address",
           },
           { name: "transferIndex", type: "uint256", internalType: "uint256" },
+          {
+            name: "canonicalAttestation",
+            type: "bytes",
+            internalType: "bytes",
+          },
         ],
       },
       { name: "signature", type: "bytes", internalType: "bytes" },
     ],
     outputs: [{ name: "", type: "address", internalType: "address" }],
-    stateMutability: "nonpayable",
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "nextUserTransferIndexes",
+    inputs: [{ name: "", type: "address", internalType: "address" }],
+    outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
+    stateMutability: "view",
   },
   {
     type: "function",
@@ -145,7 +170,7 @@ export const vaultAbi = [
     type: "function",
     name: "publishAttestation",
     inputs: [
-      { name: "attestation", type: "bytes32", internalType: "bytes32" },
+      { name: "attestation", type: "bytes", internalType: "bytes" },
       { name: "_bridgeRequestId", type: "uint256", internalType: "uint256" },
     ],
     outputs: [],
@@ -177,6 +202,11 @@ export const vaultAbi = [
             internalType: "address",
           },
           { name: "transferIndex", type: "uint256", internalType: "uint256" },
+          {
+            name: "canonicalAttestation",
+            type: "bytes",
+            internalType: "bytes",
+          },
         ],
       },
     ],
@@ -199,6 +229,13 @@ export const vaultAbi = [
   },
   {
     type: "function",
+    name: "setAVSReward",
+    inputs: [{ name: "_AVSReward", type: "uint256", internalType: "uint256" }],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
     name: "setBridgeFee",
     inputs: [{ name: "_bridgeFee", type: "uint256", internalType: "uint256" }],
     outputs: [],
@@ -209,6 +246,15 @@ export const vaultAbi = [
     name: "setCanonicalSigner",
     inputs: [
       { name: "_canonicalSigner", type: "address", internalType: "address" },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "setCrankGasCost",
+    inputs: [
+      { name: "_crankGasCost", type: "uint256", internalType: "uint256" },
     ],
     outputs: [],
     stateMutability: "nonpayable",
@@ -228,14 +274,21 @@ export const vaultAbi = [
     stateMutability: "nonpayable",
   },
   {
+    type: "function",
+    name: "whitelistedSigners",
+    inputs: [{ name: "", type: "address", internalType: "address" }],
+    outputs: [{ name: "", type: "bool", internalType: "bool" }],
+    stateMutability: "view",
+  },
+  {
     type: "event",
     name: "AVSAttestation",
     inputs: [
       {
         name: "attestation",
-        type: "bytes32",
+        type: "bytes",
         indexed: true,
-        internalType: "bytes32",
+        internalType: "bytes",
       },
       {
         name: "bridgeRequestId",

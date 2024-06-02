@@ -132,12 +132,23 @@ export default function Home() {
     try {
       const digest = await optimismVault.getDigest({
         user: address,
-        tokenAddress: SEPOLIA_OP_ERC20_CONTRACT,
+        tokenAddress: HOLESKY_ERC20_CONTRACT,
         amountIn: BigInt(textBoxValue),
         amountOut: BigInt(textBoxValue),
         destinationVault: VAULT_OP_SEPOLIA_CONTRACT,
         destinationAddress: address,
-        transferIndex: 9,
+        transferIndex: 27,
+        canonicalAttestation: "0x",
+      });
+
+      console.log({
+        user: address,
+        tokenAddress: HOLESKY_ERC20_CONTRACT,
+        amountIn: BigInt(textBoxValue),
+        amountOut: BigInt(textBoxValue),
+        destinationVault: VAULT_OP_SEPOLIA_CONTRACT,
+        destinationAddress: address,
+        transferIndex: 27,
         canonicalAttestation: "0x",
       });
 
@@ -206,9 +217,11 @@ export default function Home() {
 
     // TODO this is a big no no
     const signer = new ethers.Wallet(
-      "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
+      "0x861210e14ede5ffc63a502be024c8b4ee34c23744a411b38858f12c78723a1a2"
     );
     const signature = await signer.signMessage(digest);
+
+    console.log("Signature:", signature);
 
     // Call the input chain with the signature + call-data
     try {
