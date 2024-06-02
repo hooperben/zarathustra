@@ -11,6 +11,12 @@ import { AlertDestructive } from "@/ui/alert";
 
 const inter = Inter({ subsets: ["latin"] });
 
+declare global {
+  interface Window {
+    ethereum?: any; // Define ethereum property on the Window interface
+  }
+}
+
 export default function Home() {
 
   const [textBoxValue, setTextBoxValue] = useState<number>(NaN); // State initialization inside the component
