@@ -7,18 +7,19 @@ import { Dropdown } from "@/ui/Dropdown";
 import { Tokendropdown } from "@/ui/Tokendropdown";
 import TextBox from "@/ui/textbox";
 import { SubmitButton } from "@/ui/SubmitButton";
-import SettingsButton from "@/ui/SettingsButton";
-import { CogDrawer } from "@/ui/CogDrawer";
 import { AlertDestructive } from "@/ui/alert";
-import { ConnectButton } from "@/ui/ConnectButton";
-import { ethers } from "ethers";
+import { Contract, ethers, parseEther } from "ethers";
 import { WalletOptions } from "@/components/ui/wallet-options";
-import { useAccount, useConnect, useWriteContract } from "wagmi";
+import { useAccount, useWriteContract } from "wagmi";
 import { Account } from "@/components/ui/account";
 import {
   HOLESKY_ERC20_CONTRACT,
-  VAULT_ERC20_CONTRACT,
+  HOLESKY_VAULT_CONTRACT,
+  VAULT_OP_SEPOLIA_CONTRACT,
+  SEPOLIA_OP_ERC20_CONTRACT,
 } from "@/constants/contracts";
+import { erc20Abi } from "viem";
+import { vaultAbi } from "@/constants/vaultAbi";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -96,30 +97,50 @@ export default function Home() {
     console.log("Transaction Hash:", thHash);
   };
 
+  const [userTxIndex, setUserTxIndex] = useState(0);
+
   const getDigest = async () => {
-    const abi = [
-      "function getDigest((address,address,uint256,uint256,address,address,uint256)) view returns (bytes32)",
-    ];
     const contractAddress = "0xed4712592F95974fb0346730429C512f20c01348";
 
     const providerUrl =
-      "https://purple-divine-morning.ethereum-holesky.quiknode.pro/145f60a65b09b33285c3bfc8efda5335394ea282";
+      "https://optimism-sepolia.infura.io/v3/2bc37d20ac5048fa848978190f5f24bc";
 
     const provider = new ethers.JsonRpcProvider(providerUrl);
-    const contract = new ethers.Contract(contractAddress, abi, provider);
+    const contract = new ethers.Contract(contractAddress, vaultAbi, provider);
+
+    const optimismVault = new Contract(
+      VAULT_OP_SEPOLIA_CONTRACT,
+      vaultAbi,
+      provider
+    );
 
     const data = [
-      ethers.getAddress("0x485B7B8ECA681221d68250a7Ed88b1d4c9152149"),
-      ethers.getAddress("0xE2101b383FDdca24813DB1Bf0E68129bE402e8e0"),
-      1000000000000000000n,
-      1000000000000000000n,
-      ethers.getAddress("0xd7085121bcba7559ce6216E88A785209F4d66971"),
-      ethers.getAddress("0x485B7B8ECA681221d68250a7Ed88b1d4c9152149"), // Assume it's the same as the source wallet
-      0n, // We will need to get this from the contract too (source chain contract call)
+      address,
+      HOLESKY_ERC20_CONTRACT,
+      BigInt(textBoxValue),
+      BigInt(textBoxValue),
+      VAULT_OP_SEPOLIA_CONTRACT,
+      address,
+      address, // Assume it's the same as the source wallet
+      BigInt(0), // We will need to get this from the contract too (source chain contract call)
     ];
 
+    console.log("got this far");
+
+    console.log(data);
+
     try {
-      const digest = await contract.getFunction("getDigest")(data);
+      const digest = await optimismVault.getDigest({
+        user: address,
+        tokenAddress: SEPOLIA_OP_ERC20_CONTRACT,
+        amountIn: BigInt(textBoxValue),
+        amountOut: BigInt(textBoxValue),
+        destinationVault: VAULT_OP_SEPOLIA_CONTRACT,
+        destinationAddress: address,
+        transferIndex: 0,
+        canonicalAttestation: "0x",
+      });
+
       console.log("Digest:", digest);
       return digest;
     } catch (error) {
@@ -132,39 +153,66 @@ export default function Home() {
   const {
     data: approvalHash,
     isPending: awaitingApproval,
+    status: approvalStatus,
     writeContractAsync,
   } = useWriteContract();
 
+  const {
+    data: bridgeHash,
+    isPending: awaitingBridge,
+    status: bridgeStatus,
+    writeContractAsync: writeBridgeContractAsync,
+  } = useWriteContract();
+
+  const [approvalError, setApprovalError] = useState<string>();
+
   const handleSubmit = async () => {
+    setApprovalError(undefined);
     setLoading(true);
 
-    await writeContractAsync({
-      address: HOLESKY_ERC20_CONTRACT,
-      abi: [
-        "function approve(address spender, uint256 amount) external returns (bool)",
-      ],
-      functionName: "approve",
-      args: [VAULT_ERC20_CONTRACT, textBoxValue],
-    });
-    // await approveERC20Transfer();
+    try {
+      await writeContractAsync({
+        address: HOLESKY_ERC20_CONTRACT,
+        abi: erc20Abi,
+        functionName: "approve",
+        args: [HOLESKY_VAULT_CONTRACT, parseEther(textBoxValue.toString())],
+      });
+    } catch (err: any) {
+      console.log(err);
+      setApprovalError("Something went wrong :(");
+    }
+
+    const digest = await getDigest();
+    if (typeof digest !== "string") {
+      setApprovalError("Something went wrong :(");
+      return;
+    }
+
+    // TODO this is a big no no
+    const signer = new ethers.Wallet(
+      "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
+    );
+    const signature = await signer.signMessage(digest);
 
     // Call the input chain with the signature + call-data
     try {
-      const s = await window.ethereum.request({
-        method: "eth_sendTransaction",
-        params: [
-          {
-            from: walletAddress,
-            to: "0xed4712592F95974fb0346730429C512f20c01348",
-            value: ethers.parseEther("1"),
-          },
+      await writeBridgeContractAsync({
+        address: HOLESKY_VAULT_CONTRACT,
+        abi: vaultAbi,
+        functionName: "bridge",
+        args: [
+          HOLESKY_ERC20_CONTRACT,
+          BigInt(textBoxValue),
+          BigInt(textBoxValue),
+          VAULT_OP_SEPOLIA_CONTRACT,
+          address,
+          signature,
         ],
       });
-      console.log(s);
-    } catch (error) {
-      console.error("Error sending transaction:", error);
+    } catch (err: any) {
+      console.log(err);
+      setLoading(false);
     }
-
     setLoading(false);
   };
 
@@ -251,9 +299,40 @@ export default function Home() {
           </div>
         )}
 
-        {awaitingApproval && <h3>Awaiting approval...</h3>}
+        {(loading || awaitingBridge) && (
+          <svg
+            width="100"
+            height="100"
+            viewBox="0 0 100 100"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+          >
+            <circle
+              cx="50"
+              cy="50"
+              r="35"
+              stroke="#000"
+              stroke-width="10"
+              stroke-linecap="round"
+              stroke-dasharray="164.93361431346415 56.97787143782138"
+            >
+              <animateTransform
+                attributeName="transform"
+                type="rotate"
+                repeatCount="indefinite"
+                dur="1s"
+                keyTimes="0;1"
+                values="0 50 50;360 50 50"
+              ></animateTransform>
+            </circle>
+          </svg>
+        )}
 
-        {address && !awaitingApproval && (
+        {awaitingApproval && <h3 className="mt-4">Awaiting approval...</h3>}
+
+        {approvalError && <h4 className="mt-4">{approvalError}</h4>}
+
+        {address && !awaitingApproval && textBoxValue > 0 && !loading && (
           <SubmitButton onClick={handleSubmit} />
         )}
 
