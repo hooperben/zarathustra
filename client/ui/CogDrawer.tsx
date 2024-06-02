@@ -1,6 +1,6 @@
-import * as React from "react"
-import { useMediaQuery } from "@react-hook/media-query"
-import { Button } from "@/components/ui/button"
+import * as React from "react";
+import { useMediaQuery } from "@react-hook/media-query";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 import {
   Drawer,
   DrawerClose,
@@ -18,13 +18,20 @@ import {
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
-} from "@/components/ui/drawer"
-import Image from "next/image"
+} from "@/components/ui/drawer";
+import Image from "next/image";
 
-export function CogDrawer({ walletConnected, setWalletError, setWalletAddress }: { walletConnected: boolean, setWalletError: any, setWalletAddress: React.Dispatch<React.SetStateAction<string>> }) {
+export function CogDrawer({
+  walletConnected,
+  setWalletError,
+  setWalletAddress,
+}: {
+  walletConnected: boolean;
+  setWalletError: any;
+  setWalletAddress: React.Dispatch<React.SetStateAction<string>>;
+}) {
   const [open, setOpen] = React.useState(false);
   const isDesktop = useMediaQuery("(min-width: 768px)");
-  
 
   React.useEffect(() => {
     setOpen(!walletConnected);
@@ -32,14 +39,16 @@ export function CogDrawer({ walletConnected, setWalletError, setWalletAddress }:
 
   const handleConnectWallet = async () => {
     try {
-      const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+      const accounts = await window.ethereum.request({
+        method: "eth_requestAccounts",
+      });
       if (accounts.length > 0) {
         setWalletAddress(accounts[0]);
         console.log(accounts[0]);
       }
     } catch (error) {
       console.error("Error connecting wallet:", error);
-      setWalletError(true); 
+      setWalletError(true);
       return;
     }
 
@@ -59,7 +68,7 @@ export function CogDrawer({ walletConnected, setWalletError, setWalletAddress }:
           <div className="flex justify-center">
             <div className="flex">
               <div className="flex justify-center">
-              <Image 
+                <Image
                   src="MetaMask_Fox.svg"
                   alt="MetaMask"
                   className="dark:invert"
@@ -67,23 +76,19 @@ export function CogDrawer({ walletConnected, setWalletError, setWalletAddress }:
                   height={25}
                 />
               </div>
-              
-              <div>
-              <Button
-                onClick={handleConnectWallet}
-                style={{
-                  color: "rgba(255, 255, 255, 1)",
-                  backgroundColor: "rgba(25, 30, 35, 1)",
-                  width: "200px",
-                  transition: "background-color 0.3s ease",
-                }}
-                hoverStyle={{
-                  backgroundColor: "rgba(25, 30, 35, 0.5)",
-                }}
-              >
-                Connect Metamask
-              </Button>
 
+              <div>
+                <Button
+                  onClick={handleConnectWallet}
+                  style={{
+                    color: "rgba(255, 255, 255, 1)",
+                    backgroundColor: "rgba(25, 30, 35, 1)",
+                    width: "200px",
+                    transition: "background-color 0.3s ease",
+                  }}
+                >
+                  Connect Metamask
+                </Button>
               </div>
             </div>
           </div>

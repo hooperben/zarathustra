@@ -137,7 +137,7 @@ export default function Home() {
         amountOut: BigInt(textBoxValue),
         destinationVault: VAULT_OP_SEPOLIA_CONTRACT,
         destinationAddress: address,
-        transferIndex: 0,
+        transferIndex: 9,
         canonicalAttestation: "0x",
       });
 
@@ -323,10 +323,7 @@ export default function Home() {
           </div>
         )}
 
-        {(loading ||
-          awaitingBridge ||
-          bridgeStatus === "pending" ||
-          approvalStatus === "pending") && (
+        {(loading || awaitingBridge || approvalStatus === "pending") && (
           <svg
             width="100"
             height="100"

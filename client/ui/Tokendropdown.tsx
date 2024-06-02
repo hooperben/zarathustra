@@ -10,13 +10,13 @@ import {
 
 import Image from "next/image";
 
-export const Tokendropdown = ({ selectedToken, onSelect }) => {
-  const handleSelect = (src, alt) => {
+export const Tokendropdown = ({ selectedToken, onSelect }: any) => {
+  const handleSelect = (src: any, alt: any) => {
     onSelect(src, alt);
   };
 
   return (
-    <DropdownMenu style={{ userSelect: "none" }}>
+    <DropdownMenu>
       <DropdownMenuTrigger
         style={{
           userSelect: "none",

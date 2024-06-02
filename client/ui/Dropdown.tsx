@@ -21,7 +21,7 @@ export const Dropdown = ({ defaultEth }: { defaultEth?: boolean }) => {
   };
 
   return (
-    <DropdownMenu style={{ userSelect: "none" }}>
+    <DropdownMenu>
       <DropdownMenuTrigger
         style={{
           userSelect: "none",
@@ -80,7 +80,6 @@ export const Dropdown = ({ defaultEth }: { defaultEth?: boolean }) => {
               className="dark:invert px-5;"
               width={20}
               height={20}
-              paddingRight={20}
             />
           </div>
           Optimism (Sepolia)
