@@ -8,7 +8,7 @@ import { Tokendropdown } from "@/ui/Tokendropdown";
 import TextBox from "@/ui/textbox";
 import { SubmitButton } from "@/ui/SubmitButton";
 import { AlertDestructive } from "@/ui/alert";
-import { Contract, ethers, parseEther } from "ethers";
+import { Contract, Wallet, ethers, parseEther, verifyTypedData } from "ethers";
 import { WalletOptions } from "@/components/ui/wallet-options";
 import { useAccount, useWriteContract } from "wagmi";
 import { Account } from "@/components/ui/account";
@@ -16,7 +16,6 @@ import {
   HOLESKY_ERC20_CONTRACT,
   HOLESKY_VAULT_CONTRACT,
   VAULT_OP_SEPOLIA_CONTRACT,
-  SEPOLIA_OP_ERC20_CONTRACT,
 } from "@/constants/contracts";
 import { erc20Abi } from "viem";
 import { vaultAbi } from "@/constants/vaultAbi";
@@ -137,7 +136,7 @@ export default function Home() {
         amountOut: BigInt(textBoxValue),
         destinationVault: VAULT_OP_SEPOLIA_CONTRACT,
         destinationAddress: address,
-        transferIndex: 27,
+        transferIndex: 38,
         canonicalAttestation: "0x",
       });
 
@@ -148,7 +147,7 @@ export default function Home() {
         amountOut: BigInt(textBoxValue),
         destinationVault: VAULT_OP_SEPOLIA_CONTRACT,
         destinationAddress: address,
-        transferIndex: 27,
+        transferIndex: 38,
         canonicalAttestation: "0x",
       });
 
@@ -215,13 +214,57 @@ export default function Home() {
       return;
     }
 
+    const domain = {
+      name: "Zarathustra",
+      version: "1",
+      chainId: 17000,
+      verifyingContract: HOLESKY_VAULT_CONTRACT,
+    };
+
+    const types = {
+      BridgeRequestData: [
+        { name: "user", type: "address" },
+        { name: "tokenAddress", type: "address" },
+        { name: "amountIn", type: "uint256" },
+        { name: "amountOut", type: "uint256" },
+        { name: "destinationVault", type: "address" },
+        { name: "destinationAddress", type: "address" },
+        { name: "transferIndex", type: "uint256" },
+      ],
+    };
+
+    // Example struct data
+    const bridgeRequestData = {
+      user: address,
+      tokenAddress: HOLESKY_ERC20_CONTRACT,
+      amountIn: BigInt(textBoxValue),
+      amountOut: BigInt(textBoxValue),
+      destinationVault: VAULT_OP_SEPOLIA_CONTRACT,
+      destinationAddress: address,
+      transferIndex: 37,
+    };
+
     // TODO this is a big no no
-    const signer = new ethers.Wallet(
+    const signer = new Wallet(
       "0x861210e14ede5ffc63a502be024c8b4ee34c23744a411b38858f12c78723a1a2"
     );
-    const signature = await signer.signMessage(digest);
+    const signature = await signer.signTypedData(
+      domain,
+      types,
+      bridgeRequestData
+    );
 
+    // Create the canonical signature
     console.log("Signature:", signature);
+
+    const expectedSignerAddress = await signer.getAddress();
+    const recoveredAddress = verifyTypedData(
+      domain,
+      types,
+      bridgeRequestData,
+      signature
+    );
+    console.log("Signature valid:", recoveredAddress === expectedSignerAddress);
 
     // Call the input chain with the signature + call-data
     try {
