@@ -69,11 +69,37 @@ def add_whitelist_to_vault(web3: Web3, vault: ChecksumAddress, whitelist_address
     return tx_hash.hex()
 
 
+def get_canonical_signer(web3: Web3, vault: ChecksumAddress):
+    contract = web3.eth.contract(address=vault, abi=vault_abi)
+    return contract.functions.canonicalSigner().call()
+
+
+def get_digest(web3: Web3, vault: ChecksumAddress, cd: dict):
+    contract = web3.eth.contract(address=vault, abi=vault_abi)
+    return contract.functions.getDigest(cd).call()
+
+
 def set_bridge_fee(web3: Web3, vault: ChecksumAddress, deployer: LocalAccount):
     contract = web3.eth.contract(address=vault, abi=vault_abi)
     account = deployer.address
 
     tx = contract.functions.setBridgeFee(0).build_transaction({
+        'from': account,
+        'nonce': web3.eth.get_transaction_count(account),
+        'gas': 2000000,
+        'gasPrice': web3.to_wei('20', 'gwei')
+    })
+
+    signed_tx = web3.eth.account.sign_transaction(tx, deployer.key)
+    tx_hash = web3.eth.send_raw_transaction(signed_tx.rawTransaction)
+    return tx_hash.hex()
+
+
+def set_canonical_signer(web3: Web3, vault: ChecksumAddress, signer: ChecksumAddress, deployer: LocalAccount):
+    contract = web3.eth.contract(address=vault, abi=vault_abi)
+    account = deployer.address
+
+    tx = contract.functions.setCanonicalSigner(signer).build_transaction({
         'from': account,
         'nonce': web3.eth.get_transaction_count(account),
         'gas': 2000000,
@@ -117,7 +143,7 @@ async def release_optimism(
         destination_vault: ChecksumAddress,
         destination_address: ChecksumAddress,
         transfer_index: int,
-        canon_sig: str,
+        canon_sig: bytes,
         avs_sig: str
 ):
     bridge_request_data = {
@@ -132,21 +158,24 @@ async def release_optimism(
     }
 
     print(f"Releasing funds with {bridge_request_data=}")
+    print(f"Canon sig", canon_sig, canon_sig.hex())
+    print(f"AVS sig  ", avs_sig)
+    print("Digest", get_digest(web3_hk, holesky_vault, bridge_request_data).hex())
 
-    contract = web3_op.eth.contract(address=optimism_vault, abi=vault_abi)
+    contract = web3_hk.eth.contract(address=holesky_vault, abi=vault_abi)
     account = Account.from_key(deployer_pkey)
 
     tx = contract.functions.releaseFunds(canon_sig, avs_sig, bridge_request_data).build_transaction({
         'from': account.address,
-        'nonce': web3_op.eth.get_transaction_count(account.address),
+        'nonce': web3_hk.eth.get_transaction_count(account.address),
         'gas': 2000000,
         'gasPrice': web3_op.to_wei('20', 'gwei')
     })
 
     print(f"Built transaction {tx=}")
-    signed_tx = web3_op.eth.account.sign_transaction(tx, account.key)
+    signed_tx = web3_hk.eth.account.sign_transaction(tx, account.key)
     print(f"Signed transaction {signed_tx=}")
-    tx_hash = web3_op.eth.send_raw_transaction(signed_tx.rawTransaction)
+    tx_hash = web3_hk.eth.send_raw_transaction(signed_tx.rawTransaction)
     print(f"Sent transaction {tx_hash=}")
 
     return tx_hash.hex()
@@ -210,5 +239,6 @@ if __name__ == "__main__":
     # print(add_whitelist_to_vault(web3_op, optimism_vault, avs, Account.from_key(deployer_pkey)))
     # print(set_bridge_fee(web3_hk, holesky_vault, Account.from_key(deployer_pkey)))
     # print(bridge(test_erc20_addr, 1, holesky_vault, web3_hk, optimism_vault, burner_address, Account.from_key(burner_pkey)))
+    # print(set_canonical_signer(web3_hk, holesky_vault, "0x5f0974C77a9dcc3a15e5F019B837708f0489394D", Account.from_key(deployer_pkey)))
+    # print(get_canonical_signer(web3_hk, holesky_vault))
     asyncio.run(monitor_holesky())
-
