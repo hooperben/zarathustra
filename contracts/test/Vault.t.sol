@@ -29,7 +29,9 @@ contract VaultTest is Test, EIP712("Zarathustra", "1") {
 
     function setUp() public {
         deployer = address(0x4);
-        (canonicalSigner, canonicalSignerPkey) = makeAddrAndKey("canon");
+        canonicalSigner = address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
+        canonicalSignerPkey = 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
+//        (canonicalSigner, canonicalSignerPkey) = makeAddrAndKey("canon");
         console.log("Canonical signer: %s", canonicalSigner);
         (independentSigner, independentSignerPkey) = makeAddrAndKey("indep");
         console.log("Independent signer: %s", independentSigner);
@@ -85,12 +87,16 @@ contract VaultTest is Test, EIP712("Zarathustra", "1") {
 
         bytes32 digest = remoteVault.getDigest(brd);
 
+        console.logBytes32(digest);
+
         (uint8 v1, bytes32 r1, bytes32 s1) = vm.sign(
             canonicalSignerPkey,
             digest
         );
 
         bytes memory canonicalSig = abi.encodePacked(r1, s1, v1);
+
+        console.logBytes(canonicalSig);
 
         testERC20.approve(address(vault), amount);
         vault.bridge{value: bridgeFee}({
