@@ -9,6 +9,9 @@
     "typescript": "^5.4.5"
   },
   "dependencies": {
-    "ethers": "^6.12.1"
+    "ethers": "^6.12.1",
+    "@metamask/eth-sig-util": "^7.0.2",
+    "assert": "^2.1.0",
+    "ethereumjs-util": "^7.1.5"
   }
 }
